@@ -9,12 +9,14 @@
 
 import SwiftUI
 import SwiftData
+import GoogleSignIn
 
 @main
 struct Blissful_CatholicApp: App {
     private let modelContainer: ModelContainer
     @State private var profile: UserProfileStore
     @State private var theme = ThemeController()
+    @State private var auth = AuthStore()
 
     init() {
         let container: ModelContainer
@@ -34,6 +36,8 @@ struct Blissful_CatholicApp: App {
             }
             .environment(profile)
             .environment(theme)
+            .environment(auth)
+            .onOpenURL { GIDSignIn.sharedInstance.handle($0) }
         }
         .modelContainer(modelContainer)
     }

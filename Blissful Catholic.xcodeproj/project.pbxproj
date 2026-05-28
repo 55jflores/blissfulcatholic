@@ -6,6 +6,11 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		8B3905D12FC7F96B00C98C96 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = 8B3905D02FC7F96B00C98C96 /* Supabase */; };
+		8B3905D42FC7FCEB00C98C96 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = 8B3905D32FC7FCEB00C98C96 /* GoogleSignIn */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		8B3C66AF2FC23C850093FF64 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -52,6 +57,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				8B3905D12FC7F96B00C98C96 /* Supabase in Frameworks */,
+				8B3905D42FC7FCEB00C98C96 /* GoogleSignIn in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -112,6 +119,8 @@
 			);
 			name = "Blissful Catholic";
 			packageProductDependencies = (
+				8B3905D02FC7F96B00C98C96 /* Supabase */,
+				8B3905D32FC7FCEB00C98C96 /* GoogleSignIn */,
 			);
 			productName = "Blissful Catholic";
 			productReference = 8B3C669F2FC23C840093FF64 /* Blissful Catholic.app */;
@@ -195,6 +204,10 @@
 			);
 			mainGroup = 8B3C66962FC23C840093FF64;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				8B3905CF2FC7F96B00C98C96 /* XCRemoteSwiftPackageReference "supabase-swift" */,
+				8B3905D22FC7FCEB00C98C96 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 8B3C66A02FC23C840093FF64 /* Products */;
 			projectDirPath = "";
@@ -395,11 +408,13 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = "Blissful Catholic/Blissful Catholic.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 767PMJ9W9G;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Blissful-Catholic-Info.plist";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -427,11 +442,13 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = "Blissful Catholic/Blissful Catholic.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 767PMJ9W9G;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Blissful-Catholic-Info.plist";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -578,6 +595,38 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		8B3905CF2FC7F96B00C98C96 /* XCRemoteSwiftPackageReference "supabase-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/supabase/supabase-swift.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.5.1;
+			};
+		};
+		8B3905D22FC7FCEB00C98C96 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/google/GoogleSignIn-iOS";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 9.1.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		8B3905D02FC7F96B00C98C96 /* Supabase */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 8B3905CF2FC7F96B00C98C96 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Supabase;
+		};
+		8B3905D32FC7FCEB00C98C96 /* GoogleSignIn */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 8B3905D22FC7FCEB00C98C96 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;
+			productName = GoogleSignIn;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 8B3C66972FC23C840093FF64 /* Project object */;
 }

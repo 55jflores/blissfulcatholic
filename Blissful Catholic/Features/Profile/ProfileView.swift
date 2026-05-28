@@ -16,12 +16,14 @@ struct ProfileView: View {
     @Environment(\.lumenPalette) private var pal
     @Environment(UserProfileStore.self) private var profile
     @Environment(ThemeController.self) private var theme
+    @Environment(AuthStore.self) private var auth
 
     @Query private var sessions: [PrayerSession]
     @Query private var entries: [JournalEntry]
     @Query private var rosaries: [RosaryLog]
 
     @State private var isEditing = false
+    @State private var showSignIn = false
 
     // Streak data, derived from real activity.
     private var activeDays: Set<Date> {
@@ -47,6 +49,7 @@ struct ProfileView: View {
                     streakGarden
                     statsRow
                     sacramentalRecord
+                    accountSection
                     appearanceSection
                     preferencesSection
                     devReset
@@ -57,6 +60,50 @@ struct ProfileView: View {
         }
         .background(t.bg.ignoresSafeArea())
         .sheet(isPresented: $isEditing) { ProfileEditView() }
+        .sheet(isPresented: $showSignIn) { SignInView() }
+    }
+
+    // MARK: Account
+
+    private var accountSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Eyebrow(text: "Account", color: t.inkSoft).padding(.horizontal, 4)
+            LumenCard(padding: 0) {
+                if let email = auth.email {
+                    HStack {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Signed in").font(LumenType.display(16)).foregroundStyle(t.ink)
+                            Text(email).font(LumenType.serif(12).italic()).foregroundStyle(t.inkMid)
+                        }
+                        Spacer()
+                        Button { Task { await auth.signOut() } } label: {
+                            Text("Sign out")
+                                .font(LumenType.ui(11, weight: .medium))
+                                .foregroundStyle(pal.accent)
+                                .padding(.horizontal, 12).padding(.vertical, 6)
+                                .overlay(Capsule().strokeBorder(pal.accent, lineWidth: 0.5))
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    .padding(.horizontal, 18).padding(.vertical, 14)
+                } else {
+                    Button { showSignIn = true } label: {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Sign in").font(LumenType.display(16)).foregroundStyle(t.ink)
+                                Text("Unlock personalized AI reflections")
+                                    .font(LumenType.serif(12).italic()).foregroundStyle(t.inkMid)
+                            }
+                            Spacer()
+                            Image(systemName: "chevron.right").font(.system(size: 13)).foregroundStyle(t.inkSoft)
+                        }
+                        .padding(.horizontal, 18).padding(.vertical, 14)
+                        .contentShape(.rect)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
     }
 
     // MARK: Identity
@@ -303,6 +350,7 @@ struct ProfileView: View {
     ProfileView()
         .environment(UserProfileStore.preview)
         .environment(ThemeController())
+        .environment(AuthStore())
         .environment(\.lumenTokens, .parchment)
         .environment(\.lumenPalette, .for(.easter))
         .modelContainer(PreviewSupport.container)
