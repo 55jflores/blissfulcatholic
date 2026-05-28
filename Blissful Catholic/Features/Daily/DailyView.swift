@@ -22,6 +22,7 @@ struct DailyView: View {
     @Environment(\.modelContext) private var context
 
     @State private var prayed = false
+    @State private var showReflection = false
     private let now = Date()
 
     var body: some View {
@@ -38,6 +39,7 @@ struct DailyView: View {
                         .padding(.bottom, 22)
 
                     VStack(spacing: 16) {
+                        reflectWithAI
                         readingsCard
                         NavigationLink(value: DailyRoute.saint) { saintCard }
                             .buttonStyle(.plain)
@@ -59,6 +61,40 @@ struct DailyView: View {
             }
             .toolbar(.hidden, for: .navigationBar)
         }
+        .sheet(isPresented: $showReflection) {
+            AIReflectionView(
+                feature: "daily",
+                prompt: "Give me a short, personal reflection to pray with today."
+            )
+        }
+    }
+
+    // MARK: Reflect with AI
+
+    private var reflectWithAI: some View {
+        Button { showReflection = true } label: {
+            HStack(spacing: 12) {
+                Image(systemName: "sparkles").font(.system(size: 16))
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Reflect with your companion")
+                        .font(LumenType.ui(14, weight: .medium))
+                    Text("A reflection shaped for you, today")
+                        .font(LumenType.serif(12).italic())
+                        .foregroundStyle(.white.opacity(0.85))
+                }
+                Spacer(minLength: 0)
+                Image(systemName: "arrow.right").font(.system(size: 13))
+            }
+            .foregroundStyle(.white)
+            .padding(.horizontal, 18).padding(.vertical, 16)
+            .background(
+                LinearGradient(colors: [pal.accent, pal.accentSoft],
+                               startPoint: .topLeading, endPoint: .bottomTrailing),
+                in: .rect(cornerRadius: 16)
+            )
+            .lumenShadow(t)
+        }
+        .buttonStyle(.plain)
     }
 
     // MARK: Verse hero

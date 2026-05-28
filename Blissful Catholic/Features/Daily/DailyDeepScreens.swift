@@ -77,14 +77,9 @@ private struct DropCapText: View {
         let paragraphs = text.components(separatedBy: "\n\n")
         VStack(alignment: .leading, spacing: 14) {
             ForEach(Array(paragraphs.enumerated()), id: \.offset) { i, para in
-                if i == 0, let first = para.first {
-                    (Text(String(first))
-                        .font(LumenType.display(52))
-                        .foregroundStyle(pal.accent)
-                     + Text(String(para.dropFirst()))
-                        .font(LumenType.serif(17))
-                        .foregroundStyle(t.ink))
-                    .lineSpacing(6)
+                if i == 0, !para.isEmpty {
+                    Text(dropCapped(para))
+                        .lineSpacing(6)
                 } else {
                     Text(para)
                         .font(LumenType.serif(17))
@@ -93,6 +88,19 @@ private struct DropCapText: View {
                 }
             }
         }
+    }
+
+    /// A drop-cap paragraph: a large accent first letter, then serif body — built
+    /// as one AttributedString (iOS 26 deprecated `Text + Text`).
+    private func dropCapped(_ para: String) -> AttributedString {
+        var head = AttributedString(String(para.prefix(1)))
+        head.font = LumenType.display(52)
+        head.foregroundColor = pal.accent
+        var rest = AttributedString(String(para.dropFirst()))
+        rest.font = LumenType.serif(17)
+        rest.foregroundColor = t.ink
+        head.append(rest)
+        return head
     }
 }
 

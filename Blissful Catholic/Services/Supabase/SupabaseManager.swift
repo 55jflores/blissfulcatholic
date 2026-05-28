@@ -24,6 +24,9 @@ enum SupabaseConfig {
     /// Its reversed form is registered as a URL scheme in the target's Info → URL Types.
     static let googleIOSClientID =
         "222756209200-ucjcvrhuaq7i9iqc8od57366ucllrj4c.apps.googleusercontent.com"
+
+    /// The Next.js backend that proxies AI calls (iOS → Next.js → Claude).
+    static let apiBaseURL = URL(string: "https://blissfulcatholic.com")!
 }
 
 /// App-wide Supabase client singleton.

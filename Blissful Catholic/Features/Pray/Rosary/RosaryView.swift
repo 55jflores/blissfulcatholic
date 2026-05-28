@@ -27,7 +27,7 @@ struct RosaryView: View {
 
     init(resume: Bool = false) {
         self.resume = resume
-        var model = RosaryViewModel()
+        let model = RosaryViewModel()
         if resume, let progress = RosaryProgressStore.load() {
             model.select(progress.mystery)
             model.setIndex(progress.index)
