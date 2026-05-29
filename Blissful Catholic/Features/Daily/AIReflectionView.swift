@@ -24,6 +24,7 @@ struct AIReflectionView: View {
     @State private var text = ""
     @State private var phase: Phase = .idle
     @State private var errorText: String?
+    @State private var needsPlus = false
     @State private var showSignIn = false
 
     private enum Phase { case idle, streaming, done }
@@ -64,7 +65,9 @@ struct AIReflectionView: View {
 
     // Signed-in: the streamed reflection.
     @ViewBuilder private var content: some View {
-        if let errorText {
+        if needsPlus {
+            PlusUpsellCard()
+        } else if let errorText {
             Text(errorText)
                 .font(LumenType.serif(14))
                 .foregroundStyle(pal.accent)
@@ -83,7 +86,7 @@ struct AIReflectionView: View {
                 .fixedSize(horizontal: false, vertical: true)
         }
 
-        if phase == .done, errorText == nil {
+        if phase == .done, errorText == nil, !needsPlus {
             Ornament(color: t.inkSoft).padding(.top, 8)
         }
     }
@@ -102,7 +105,7 @@ struct AIReflectionView: View {
 
     private func run() async {
         phase = .streaming
-        text = ""; errorText = nil
+        text = ""; errorText = nil; needsPlus = false
         guard let token = await auth.accessToken() else {
             errorText = AIError.notSignedIn.localizedDescription
             phase = .done
@@ -117,6 +120,9 @@ struct AIReflectionView: View {
                 token: token
             )
             for try await chunk in stream { text += chunk }
+            phase = .done
+        } catch AIError.upgradeRequired {
+            needsPlus = true
             phase = .done
         } catch {
             errorText = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription

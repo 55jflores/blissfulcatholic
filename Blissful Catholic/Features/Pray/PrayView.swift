@@ -16,6 +16,7 @@ struct PrayView: View {
     @Environment(\.lumenTokens) private var t
     @Environment(\.lumenPalette) private var pal
     @State private var progress: RosaryProgress?
+    @State private var showConfession = false
 
     var body: some View {
         NavigationStack {
@@ -29,6 +30,13 @@ struct PrayView: View {
                         .buttonStyle(.plain)
                         .padding(.horizontal, 20)
                         .padding(.bottom, 18)
+
+                    AICTAButton(title: "Prepare for Confession",
+                                subtitle: "A gentle examination of conscience") {
+                        showConfession = true
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 18)
 
                 VStack(alignment: .leading, spacing: 0) {
                     Eyebrow(text: "Practices", color: t.inkSoft)
@@ -57,6 +65,14 @@ struct PrayView: View {
                 }
             }
             .toolbar(.hidden, for: .navigationBar)
+        }
+        .sheet(isPresented: $showConfession) {
+            AIReflectionView(
+                feature: "confession_prep",
+                prompt: "Help me examine my conscience and prepare for the Sacrament of Reconciliation.",
+                title: "Examination of Conscience",
+                reason: "Sign in to prepare for Confession."
+            )
         }
     }
 

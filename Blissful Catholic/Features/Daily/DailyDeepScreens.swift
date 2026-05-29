@@ -26,6 +26,7 @@ struct ReadingScreen: View {
     @Environment(\.lumenTokens) private var t
     @Environment(\.lumenPalette) private var pal
     @Environment(\.dismiss) private var dismiss
+    @State private var showLectio = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -54,6 +55,12 @@ struct ReadingScreen: View {
                     .background(t.surface2, in: .rect(cornerRadius: 12))
                     .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(t.rule, lineWidth: 0.5))
                     .padding(.top, 24)
+
+                    AICTAButton(title: "Pray this with Lectio Divina",
+                                subtitle: "A guided, prayerful reading") {
+                        showLectio = true
+                    }
+                    .padding(.top, 24)
                 }
                 .padding(.horizontal, 28)
                 .padding(.top, 24)
@@ -62,6 +69,14 @@ struct ReadingScreen: View {
         }
         .background(t.bg.ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)
+        .sheet(isPresented: $showLectio) {
+            AIReflectionView(
+                feature: "lectio",
+                prompt: "Lead me in praying Lectio Divina with this passage — \(reading.citation):\n\n\(reading.body)",
+                title: "Lectio Divina",
+                reason: "Sign in to pray Lectio Divina."
+            )
+        }
     }
 }
 
@@ -110,7 +125,9 @@ struct SaintScreen: View {
     @Environment(\.lumenTokens) private var t
     @Environment(\.lumenPalette) private var pal
     @Environment(\.dismiss) private var dismiss
+    @State private var showReflect = false
 
+    private let saintName = "St. Rita of Cascia"
     private let patronages = ["Impossible causes", "Abused wives", "Widows", "Wounded"]
     private let bio = [
         "Born in Roccaporena, Umbria, Rita longed for the cloister from a young age but was given in marriage at twelve to a hot-tempered nobleman. For eighteen years she endured his cruelty in patience and prayer, eventually winning his conversion shortly before he was murdered in a vendetta.",
@@ -171,6 +188,12 @@ struct SaintScreen: View {
                         .background(t.surface2, in: .rect(cornerRadius: 12))
                         .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(t.rule, lineWidth: 0.5))
                         .padding(.top, 22)
+
+                        AICTAButton(title: "Reflect on this saint",
+                                    subtitle: "What their witness offers you today") {
+                            showReflect = true
+                        }
+                        .padding(.top, 22)
                     }
                     .padding(.horizontal, 24)
                     .padding(.top, 20)
@@ -180,6 +203,14 @@ struct SaintScreen: View {
         }
         .background(t.bg.ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)
+        .sheet(isPresented: $showReflect) {
+            AIReflectionView(
+                feature: "saint",
+                prompt: "Tell me about \(saintName) — their life and witness — and what their example offers me today.",
+                title: saintName,
+                reason: "Sign in to reflect on the saints."
+            )
+        }
     }
 }
 

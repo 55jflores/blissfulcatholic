@@ -28,6 +28,9 @@ struct SignInView: View {
     @State private var errorText: String?
     @State private var appleRawNonce = ""
 
+    private enum Field { case email, password }
+    @FocusState private var focusedField: Field?
+
     private var cta: String { mode == .signIn ? "Sign in" : "Create account" }
     private var togglePrompt: String {
         mode == .signIn ? "New here? Create an account" : "Already have an account? Sign in"
@@ -50,7 +53,9 @@ struct SignInView: View {
 
                 VStack(spacing: 12) {
                     field("Email", text: $email, isSecure: false)
+                        .focused($focusedField, equals: .email)
                     field("Password", text: $password, isSecure: true)
+                        .focused($focusedField, equals: .password)
                 }
 
                 if let errorText {
@@ -154,6 +159,7 @@ struct SignInView: View {
     }
 
     private func signInWithGoogle() {
+        focusedField = nil // dismiss the keyboard
         errorText = nil
         isWorking = true
         Task {
@@ -198,6 +204,7 @@ struct SignInView: View {
     }
 
     private func submit() {
+        focusedField = nil // dismiss the keyboard
         errorText = nil
         isWorking = true
         Task {

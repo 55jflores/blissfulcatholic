@@ -22,7 +22,12 @@ struct ComposeScreen: View {
     @State private var text = ""
     @State private var activeTag = 0
     @State private var loaded = false
+    @State private var showInsight = false
     @FocusState private var focused: Bool
+
+    private var hasContent: Bool {
+        !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
 
     private let tags = ["Examen", "Gratitude", "Intention", "Mass", "Confession prep"]
 
@@ -30,14 +35,27 @@ struct ComposeScreen: View {
         VStack(spacing: 0) {
             LumenDeepHeader(eyebrow: entry == nil ? "New Entry" : "Edit Entry",
                             title: dateTitle, onBack: { dismiss() }) {
-                Button { save() } label: {
-                    Image(systemName: "checkmark")
-                        .font(.system(size: 16, weight: .medium))
-                        .foregroundStyle(.white)
-                        .frame(width: 36, height: 36)
-                        .background(pal.accent, in: .circle)
+                HStack(spacing: 10) {
+                    if hasContent {
+                        Button { focused = false; showInsight = true } label: {
+                            Image(systemName: "sparkles")
+                                .font(.system(size: 15, weight: .medium))
+                                .foregroundStyle(pal.accent)
+                                .frame(width: 36, height: 36)
+                                .background(t.surface, in: .circle)
+                                .overlay(Circle().strokeBorder(t.rule, lineWidth: 0.5))
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    Button { save() } label: {
+                        Image(systemName: "checkmark")
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundStyle(.white)
+                            .frame(width: 36, height: 36)
+                            .background(pal.accent, in: .circle)
+                    }
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
             }
 
             ScrollView {
@@ -66,6 +84,14 @@ struct ComposeScreen: View {
         .background(t.bg.ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)
         .onAppear(perform: loadOnce)
+        .sheet(isPresented: $showInsight) {
+            AIReflectionView(
+                feature: "journal_insight",
+                prompt: text,
+                title: "A reflection on your entry",
+                reason: "Sign in for a reflection on your entry."
+            )
+        }
     }
 
     private func loadOnce() {

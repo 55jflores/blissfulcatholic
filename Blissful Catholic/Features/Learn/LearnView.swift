@@ -13,6 +13,8 @@ struct LearnView: View {
     @Environment(\.lumenTokens) private var t
     @Environment(\.lumenPalette) private var pal
 
+    @State private var showCatechism = false
+
     private let paths: [(title: String, meta: String, pct: Double, hue: Double, cover: String)] = [
         ("The Catechism in 90 Days", "Day 23 · CCC §301", 0.26, 30, "CCC"),
         ("Gospel of John", "Chapter 14 · Lectio", 0.48, 70, "JN"),
@@ -33,6 +35,10 @@ struct LearnView: View {
                 LumenScreenHeader(eyebrow: "Learn", title: "Learn") {
                     LumenIconButton(systemImage: "magnifyingglass")
                 }
+
+                askCatechism
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 20)
 
                 featuredCourse
                     .padding(.horizontal, 20)
@@ -65,6 +71,16 @@ struct LearnView: View {
             .padding(.bottom, 120)
         }
         .background(t.bg.ignoresSafeArea())
+        .sheet(isPresented: $showCatechism) { CatechismView() }
+    }
+
+    // MARK: Ask the Catechism (AI)
+
+    private var askCatechism: some View {
+        AICTAButton(title: "Ask about the faith",
+                    subtitle: "Answers grounded in the Catechism") {
+            showCatechism = true
+        }
     }
 
     // MARK: Featured
