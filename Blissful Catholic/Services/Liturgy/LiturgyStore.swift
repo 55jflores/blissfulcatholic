@@ -68,8 +68,25 @@ final class LiturgyStore {
         }
     }
 
+    /// Debug-only date override. Set to a "YYYY-MM-DD" string to make every
+    /// liturgy fetch behave as if that were today — useful for previewing the
+    /// saint card and readings on a specific day without touching the device
+    /// clock. Leave as `nil` for normal behavior. Stripped from release builds.
+    #if DEBUG
+    private static let debugDateOverride: String? = nil
+    // Examples while content-wiring:
+    //   "2026-08-15"  → Assumption (Solemnity)
+    //   "2026-08-28"  → Augustine (Memorial)
+    //   "2026-07-22"  → Mary Magdalene (Feast)
+    //   "2026-05-22"  → Rita of Cascia (Optional Memorial)
+    //   nil           → use the device's real clock
+    #endif
+
     /// Today's date in the device's local calendar, as YYYY-MM-DD.
     private static func localDateString() -> String {
+        #if DEBUG
+        if let override = debugDateOverride { return override }
+        #endif
         let f = DateFormatter()
         f.calendar = Calendar(identifier: .gregorian)
         f.locale = Locale(identifier: "en_US_POSIX")

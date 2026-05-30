@@ -203,78 +203,50 @@ private struct DropCapText: View {
 // MARK: - Saint
 
 struct SaintScreen: View {
+    let saint: Saint
     @Environment(\.lumenTokens) private var t
     @Environment(\.lumenPalette) private var pal
     @Environment(\.dismiss) private var dismiss
     @State private var showReflect = false
 
-    private let saintName = "St. Rita of Cascia"
-    private let patronages = ["Impossible causes", "Abused wives", "Widows", "Wounded"]
-    private let bio = [
-        "Born in Roccaporena, Umbria, Rita longed for the cloister from a young age but was given in marriage at twelve to a hot-tempered nobleman. For eighteen years she endured his cruelty in patience and prayer, eventually winning his conversion shortly before he was murdered in a vendetta.",
-        "Her two sons swore to avenge their father. Rita prayed they might die rather than commit the sin of revenge — and within the year both succumbed to illness, reconciled to God.",
-        "Widowed and childless, she sought entry into the Augustinian monastery at Cascia. Refused three times, she was finally admitted after, by tradition, her patron saints transported her there in the night.",
-    ]
-
     var body: some View {
         VStack(spacing: 0) {
-            LumenDeepHeader(eyebrow: "Memorial · May 22", title: "St. Rita of Cascia", onBack: { dismiss() }) {
+            LumenDeepHeader(eyebrow: headerEyebrow, title: saint.name, onBack: { dismiss() }) {
                 LumenIconButton(systemImage: "bookmark")
             }
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
-                    ArtPlate(label: "ST. RITA · MARGHERITA LOTTI · 1381–1457", hue: 15, height: 260, cornerRadius: 0)
+                    ArtPlate(label: saint.artPlateLabel, hue: 15, height: 260, cornerRadius: 0)
 
                     VStack(alignment: .leading, spacing: 0) {
-                        Eyebrow(text: "Patroness of Impossible Causes", color: pal.accent)
-                        Text("St. Rita of Cascia")
+                        if let patronage = saint.patronage {
+                            Eyebrow(text: patronage, color: pal.accent)
+                        }
+                        Text(saint.name)
                             .font(LumenType.display(36))
                             .foregroundStyle(t.ink)
                             .tracking(-0.5)
                             .padding(.top, 8)
-                        Text("Wife, mother, widow, Augustinian nun.")
-                            .font(LumenType.serif(14).italic())
-                            .foregroundStyle(t.inkMid)
-                            .padding(.top, 6)
+                        if let title = saint.title {
+                            Text(title)
+                                .font(LumenType.serif(14).italic())
+                                .foregroundStyle(t.inkMid)
+                                .padding(.top, 6)
+                        }
 
                         Ornament(color: pal.accent).padding(.vertical, 22)
 
                         VStack(alignment: .leading, spacing: 14) {
-                            ForEach(Array(bio.enumerated()), id: \.offset) { _, p in
+                            ForEach(Array(bioParagraphs.enumerated()), id: \.offset) { _, p in
                                 Text(p).font(LumenType.serif(15)).foregroundStyle(t.ink).lineSpacing(6)
                             }
                         }
-
-                        FlowLayout(spacing: 6, lineSpacing: 6) {
-                            ForEach(patronages, id: \.self) { tag in
-                                Text(tag)
-                                    .font(LumenType.ui(11))
-                                    .foregroundStyle(t.inkMid)
-                                    .padding(.horizontal, 12).padding(.vertical, 6)
-                                    .background(t.surface, in: .capsule)
-                                    .overlay(Capsule().strokeBorder(t.rule, lineWidth: 0.5))
-                            }
-                        }
-                        .padding(.top, 22)
-
-                        VStack(alignment: .leading, spacing: 6) {
-                            Eyebrow(text: "Prayer to St. Rita", color: t.inkSoft)
-                            Text("“O holy patroness of those in need, pray for us in this hour — that no cause may seem too lost to bring before the Father.”")
-                                .font(LumenType.display(17).italic())
-                                .foregroundStyle(t.ink)
-                                .lineSpacing(3)
-                        }
-                        .padding(16)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(t.surface2, in: .rect(cornerRadius: 12))
-                        .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(t.rule, lineWidth: 0.5))
-                        .padding(.top, 22)
 
                         AICTAButton(title: "Reflect on this saint",
                                     subtitle: "What their witness offers you today") {
                             showReflect = true
                         }
-                        .padding(.top, 22)
+                        .padding(.top, 28)
                     }
                     .padding(.horizontal, 24)
                     .padding(.top, 20)
@@ -287,11 +259,36 @@ struct SaintScreen: View {
         .sheet(isPresented: $showReflect) {
             AIReflectionView(
                 feature: "saint",
-                prompt: "Tell me about \(saintName) — their life and witness — and what their example offers me today.",
-                title: saintName,
+                prompt: reflectPrompt,
+                title: saint.name,
                 reason: "Sign in to reflect on the saints."
             )
         }
+    }
+
+    // MARK: Derived
+
+    /// Eyebrow above the title — uses today's date and the saint's rank/title
+    /// (e.g. "Memorial · Sep 23", "Solemnity · Aug 15").
+    private var headerEyebrow: String {
+        let date = Date().formatted(.dateTime.month(.abbreviated).day())
+        if let title = saint.title { return "\(title) · \(date)" }
+        return date
+    }
+
+    /// Split the bio into paragraphs on the `\n\n` delimiter we use in saints.json.
+    private var bioParagraphs: [String] {
+        saint.bio.components(separatedBy: "\n\n")
+    }
+
+    /// AI reflection prompt — passes the saint's facts and bio so the response
+    /// is grounded rather than generated from the model's general knowledge.
+    private var reflectPrompt: String {
+        var prompt = "Tell me about \(saint.name)"
+        if let title = saint.title { prompt += " (\(title))" }
+        prompt += " — their life and witness — and what their example offers me today.\n\n"
+        prompt += "Background:\n\(saint.bio)"
+        return prompt
     }
 }
 

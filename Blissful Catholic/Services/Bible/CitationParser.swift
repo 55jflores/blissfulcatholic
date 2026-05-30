@@ -63,12 +63,15 @@ nonisolated enum CitationParser {
 
     /// Parse "chapter[:verse][-...][, more]" into one or more references.
     /// State note: in "23:1, 3-5" the trailing "3-5" inherits chapter 23.
+    /// Single-chapter books (Jude, Obadiah, Philemon, 2 & 3 John) cite verses
+    /// without a chapter prefix — "Jude 17, 20-25" means 1:17, 1:20–1:25 —
+    /// so we pre-seed chapter 1 for those, making bare numbers parse as verses.
     private static func parseSpec(_ spec: String, book: String) -> [BibleReference] {
         guard !spec.isEmpty else { return [] }
         let parts = spec.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }
 
         var refs: [BibleReference] = []
-        var carriedChapter: Int? = nil
+        var carriedChapter: Int? = singleChapterBooks.contains(book) ? 1 : nil
         for part in parts {
             if let ref = parseRangePart(String(part), book: book, carriedChapter: carriedChapter) {
                 refs.append(ref)
@@ -77,6 +80,9 @@ nonisolated enum CitationParser {
         }
         return refs
     }
+
+    /// USFM codes for the five single-chapter books in the Catholic canon.
+    private static let singleChapterBooks: Set<String> = ["OBA", "PHM", "2JN", "3JN", "JUD"]
 
     /// Parse a single dash-separated range like "5:3-12", "12:31-13:13", "3-5", or "23".
     private static func parseRangePart(_ part: String, book: String, carriedChapter: Int?) -> BibleReference? {

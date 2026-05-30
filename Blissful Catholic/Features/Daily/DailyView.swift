@@ -12,7 +12,7 @@ import SwiftData
 
 enum DailyRoute: Hashable {
     case reading(ReadingItem)
-    case saint
+    case saint(Saint)
     case reflection
 }
 
@@ -42,8 +42,7 @@ struct DailyView: View {
                     VStack(spacing: 16) {
                         reflectWithAI
                         readingsCard
-                        NavigationLink(value: DailyRoute.saint) { saintCard }
-                            .buttonStyle(.plain)
+                        saintCard
                         NavigationLink(value: DailyRoute.reflection) { reflectionCard }
                             .buttonStyle(.plain)
                         intentionSection
@@ -55,14 +54,15 @@ struct DailyView: View {
             .background(t.bg.ignoresSafeArea())
             .navigationDestination(for: DailyRoute.self) { route in
                 switch route {
-                case .reading(let r): ReadingScreen(reading: r)
-                case .saint:          SaintScreen()
-                case .reflection:     ReflectionScreen()
+                case .reading(let r):  ReadingScreen(reading: r)
+                case .saint(let s):    SaintScreen(saint: s)
+                case .reflection:      ReflectionScreen()
                 }
             }
             .toolbar(.hidden, for: .navigationBar)
             .task { await liturgy.loadToday() }
             .task(id: liturgy.today?.date) { await loadFirstVerses() }
+            .task(id: liturgy.today?.celebration) { await loadSaint() }
         }
         .sheet(isPresented: $showReflection) {
             AIReflectionView(
@@ -215,24 +215,58 @@ struct DailyView: View {
 
     // MARK: Saint of the day
 
+    /// Today's saint resolved from `liturgy.today.celebration` against the bundled
+    /// saints catalog. Nil whenever the day is a feria, a Sunday, or a celebration
+    /// outside the catalog (the first cut covers ~30 high-traffic saints).
+    @State private var todaySaint: Saint?
+
+    private func loadSaint() async {
+        guard let celebration = liturgy.today?.celebration else {
+            todaySaint = nil
+            return
+        }
+        todaySaint = await SaintService.shared.resolve(celebration: celebration)
+    }
+
+    /// Display string for the liturgical rank shown as the saint card's eyebrow.
+    private var rankDisplay: String {
+        switch liturgy.today?.rank {
+        case "SOLEMNITY":      return "Solemnity"
+        case "FEAST":          return "Feast"
+        case "MEMORIAL":       return "Memorial"
+        case "OPT_MEMORIAL":   return "Optional Memorial"
+        default:               return "Today"
+        }
+    }
+
+    /// Hidden entirely on days the catalog can't resolve — cleaner than showing
+    /// a stale saint.
+    @ViewBuilder
     private var saintCard: some View {
-        LumenCard(padding: 0) {
-            HStack(spacing: 0) {
-                ArtPlate(label: "ST. RITA · 1381", hue: 20, width: 108, height: 130, cornerRadius: 0)
-                VStack(alignment: .leading, spacing: 8) {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Eyebrow(text: "Memorial", color: pal.accent)
-                        Text("St. Rita of Cascia").font(LumenType.display(22)).foregroundStyle(t.ink)
-                        Text("Patroness of impossible causes")
-                            .font(LumenType.serif(12).italic()).foregroundStyle(t.inkMid)
+        if let saint = todaySaint {
+            NavigationLink(value: DailyRoute.saint(saint)) {
+                LumenCard(padding: 0) {
+                    HStack(spacing: 0) {
+                        ArtPlate(label: saint.artPlateLabel, hue: 20, width: 108, height: 130, cornerRadius: 0)
+                        VStack(alignment: .leading, spacing: 8) {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Eyebrow(text: rankDisplay, color: pal.accent)
+                                Text(saint.name).font(LumenType.display(22)).foregroundStyle(t.ink)
+                                if let patronage = saint.patronage {
+                                    Text(patronage)
+                                        .font(LumenType.serif(12).italic()).foregroundStyle(t.inkMid)
+                                }
+                            }
+                            Spacer(minLength: 0)
+                            Text(saint.blurb)
+                                .font(LumenType.serif(12)).foregroundStyle(t.inkMid).lineSpacing(2)
+                        }
+                        .padding(.horizontal, 18).padding(.vertical, 14)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                     }
-                    Spacer(minLength: 0)
-                    Text("Wife, mother, widow, and Augustinian — known for the wound she bore on her forehead.")
-                        .font(LumenType.serif(12)).foregroundStyle(t.inkMid).lineSpacing(2)
                 }
-                .padding(.horizontal, 18).padding(.vertical, 14)
-                .frame(maxWidth: .infinity, alignment: .leading)
             }
+            .buttonStyle(.plain)
         }
     }
 
