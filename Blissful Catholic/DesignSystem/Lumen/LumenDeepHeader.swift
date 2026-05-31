@@ -18,26 +18,39 @@ struct LumenDeepHeader<Right: View>: View {
     @Environment(\.lumenPalette) private var pal
 
     var body: some View {
-        HStack(spacing: 8) {
-            Button(action: onBack) {
-                Image(systemName: "chevron.left")
-                    .font(.system(size: 18, weight: .regular))
-                    .foregroundStyle(t.inkMid)
-                    .frame(width: 36, height: 36)
-                    .contentShape(.rect)
-            }
-            .buttonStyle(.plain)
-
+        ZStack {
+            // Title sits centered on the *full* header width. Decoupling it from
+            // the HStack means the title doesn't shift when the trailing slot
+            // grows (e.g. ComposeScreen revealing the AI sparkle button).
             VStack(spacing: 2) {
                 Eyebrow(text: eyebrow, color: pal.accent)
                 Text(title)
                     .font(LumenType.display(17))
                     .foregroundStyle(t.ink)
                     .lineLimit(1)
+                    .minimumScaleFactor(0.85)
             }
             .frame(maxWidth: .infinity)
+            // Reserve room for the back button + trailing slot so long titles
+            // don't visually collide with them.
+            .padding(.horizontal, 92)
 
-            right().frame(width: 36, height: 36)
+            HStack(spacing: 8) {
+                Button(action: onBack) {
+                    Image(systemName: "chevron.left")
+                        .font(.system(size: 18, weight: .regular))
+                        .foregroundStyle(t.inkMid)
+                        .frame(width: 36, height: 36)
+                        .contentShape(.rect)
+                }
+                .buttonStyle(.plain)
+
+                Spacer()
+
+                // Trailing slot — fixed height, natural width. Callers can stack
+                // multiple icon buttons without overflowing.
+                right().frame(height: 36)
+            }
         }
         .padding(.horizontal, 16)
         .padding(.top, 8)

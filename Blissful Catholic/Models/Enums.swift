@@ -70,6 +70,7 @@ enum AppFeature: String, CaseIterable, Codable, Identifiable {
     case catechism
     case saints
     case journal
+    case intention
     var id: String { rawValue }
     var displayName: String {
         switch self {
@@ -80,6 +81,7 @@ enum AppFeature: String, CaseIterable, Codable, Identifiable {
         case .catechism:  return "Catechism companion"
         case .saints:     return "Saints"
         case .journal:    return "Journal"
+        case .intention:  return "Intention"
         }
     }
     var systemImage: String {
@@ -91,6 +93,7 @@ enum AppFeature: String, CaseIterable, Codable, Identifiable {
         case .catechism:  return "bubble.left.and.text.bubble.right"
         case .saints:     return "person.crop.circle.badge.checkmark"
         case .journal:    return "pencil.and.outline"
+        case .intention:  return "flame"
         }
     }
 }

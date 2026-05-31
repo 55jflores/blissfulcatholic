@@ -31,9 +31,7 @@ struct ReadingScreen: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            LumenDeepHeader(eyebrow: reading.label, title: reading.citation, onBack: { dismiss() }) {
-                LumenIconButton(systemImage: "bookmark")
-            }
+            LumenDeepHeader(eyebrow: reading.label, title: reading.citation, onBack: { dismiss() })
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
                     Eyebrow(text: reading.label, color: pal.accent).padding(.bottom, 10)
@@ -211,12 +209,10 @@ struct SaintScreen: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            LumenDeepHeader(eyebrow: headerEyebrow, title: saint.name, onBack: { dismiss() }) {
-                LumenIconButton(systemImage: "bookmark")
-            }
+            LumenDeepHeader(eyebrow: headerEyebrow, title: saint.name, onBack: { dismiss() })
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
-                    ArtPlate(label: saint.artPlateLabel, hue: 15, height: 260, cornerRadius: 0)
+                    artworkHeader
 
                     VStack(alignment: .leading, spacing: 0) {
                         if let patronage = saint.patronage {
@@ -241,6 +237,8 @@ struct SaintScreen: View {
                                 Text(p).font(LumenType.serif(15)).foregroundStyle(t.ink).lineSpacing(6)
                             }
                         }
+
+                        attributionFooter
 
                         AICTAButton(title: "Reflect on this saint",
                                     subtitle: "What their witness offers you today") {
@@ -281,6 +279,69 @@ struct SaintScreen: View {
         saint.bio.components(separatedBy: "\n\n")
     }
 
+    /// Hero artwork. Uses bundled public-domain painting when present; falls
+    /// back to the procedural `ArtPlate` for saints we haven't curated artwork
+    /// for yet (Patrick) or where no PD portrait exists (Padre Pio).
+    ///
+    /// Layout note: a clear-color frame controls the container size, and the
+    /// image is rendered as an overlay on top of it. This is the only reliable
+    /// way I've found to keep an aspect-fill image from ballooning its parent
+    /// VStack to the image's intrinsic width (which dragged the rest of the
+    /// screen's content off the left edge in the first pass).
+    @ViewBuilder
+    private var artworkHeader: some View {
+        if let uiImage = bundledArtwork {
+            Color.clear
+                .frame(maxWidth: .infinity)
+                .frame(height: 320)
+                .overlay {
+                    Image(uiImage: uiImage)
+                        .resizable()
+                        .scaledToFill()
+                }
+                .clipShape(.rect(cornerRadius: 12))
+                .padding(.horizontal, 24)
+                .padding(.top, 4)
+        } else {
+            ArtPlate(label: saint.artPlateLabel, hue: 15, height: 260, cornerRadius: 0)
+        }
+    }
+
+    /// Resolve the bundled painting. Files live in `Resources/saint-art/{key}.jpg`
+    /// in the source tree, but Xcode's synchronized file group flattens the
+    /// directory, so they're at the bundle root keyed by `{key}.jpg` at runtime.
+    /// Nil when no artwork is present for this saint key.
+    private var bundledArtwork: UIImage? {
+        guard let url = Bundle.main.url(forResource: saint.key, withExtension: "jpg"),
+              let data = try? Data(contentsOf: url)
+        else { return nil }
+        return UIImage(data: data)
+    }
+
+    /// Honest provenance for both the bio and the artwork. The bio attribution
+    /// always applies; the artwork credit appears only when bundled art exists.
+    private var attributionFooter: some View {
+        VStack(spacing: 4) {
+            if let artwork = saint.artwork {
+                Text("\(artwork.artist) · \(artwork.title) (\(artwork.year))")
+                    .font(LumenType.ui(10).italic())
+                    .foregroundStyle(t.inkSoft)
+                    .multilineTextAlignment(.center)
+                Text(artwork.source)
+                    .font(LumenType.ui(9))
+                    .foregroundStyle(t.inkSoft.opacity(0.7))
+                    .multilineTextAlignment(.center)
+            }
+            Text("Facts drawn from the 1913 Catholic Encyclopedia and Vatican biographical sources. Devotional prose written for Blissful Catholic.")
+                .font(LumenType.ui(10).italic())
+                .foregroundStyle(t.inkSoft)
+                .multilineTextAlignment(.center)
+                .padding(.top, saint.artwork == nil ? 0 : 8)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.top, 28)
+    }
+
     /// AI reflection prompt — passes the saint's facts and bio so the response
     /// is grounded rather than generated from the model's general knowledge.
     private var reflectPrompt: String {
@@ -294,57 +355,25 @@ struct SaintScreen: View {
 
 // MARK: - Reflection
 
+/// Renders today's AI-generated reflection from `DailyReflectionStore`. The home
+/// `DailyView` is responsible for triggering the load; this screen just observes
+/// the store and renders its phase.
 struct ReflectionScreen: View {
     @Environment(\.lumenTokens) private var t
     @Environment(\.lumenPalette) private var pal
     @Environment(\.dismiss) private var dismiss
-
-    private let paragraphs = [
-        "“Your grief will become joy.” The Lord does not say it will be replaced. He does not say it will be undone. He names a transformation — a turning — that only sorrow could have prepared.",
-        "This is hard to receive. We are tempted to imagine joy as a kind of forgetting, or as the absence of suffering. But the Risen Lord still bears his wounds. The glorified body of the Son of God carries the marks of nails.",
-        "What if the joy he promises is exactly the kind that remembers — that holds the whole of our story, and finds, at the bottom, that we were not alone?",
-    ]
+    @State private var store = DailyReflectionStore.shared
 
     var body: some View {
         VStack(spacing: 0) {
-            LumenDeepHeader(eyebrow: "Reflection · 3 min", title: "Friday of Easter VI") { dismiss() }
+            LumenDeepHeader(eyebrow: headerEyebrow, title: "Today's Reflection",
+                            onBack: { dismiss() })
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
-                    Eyebrow(text: "On joy that is given", color: pal.accent)
-                    Text("The kind of joy that does not depend on circumstance.")
-                        .font(LumenType.display(30))
-                        .foregroundStyle(t.ink)
-                        .tracking(-0.4)
-                        .padding(.top, 8)
+                    Eyebrow(text: eyebrowText, color: pal.accent).padding(.bottom, 10)
+                    Ornament(color: pal.accent).frame(maxWidth: 220).padding(.vertical, 22)
 
-                    Ornament(color: pal.accent).padding(.vertical, 24)
-
-                    VStack(alignment: .leading, spacing: 14) {
-                        ForEach(Array(paragraphs.enumerated()), id: \.offset) { _, p in
-                            Text(p).font(LumenType.serif(16)).foregroundStyle(t.ink).lineSpacing(6)
-                        }
-                    }
-
-                    HStack(spacing: 12) {
-                        Text("N")
-                            .font(LumenType.display(16).italic())
-                            .foregroundStyle(.white)
-                            .frame(width: 36, height: 36)
-                            .background(LinearGradient(colors: [pal.accent, pal.accentSoft],
-                                                       startPoint: .topLeading, endPoint: .bottomTrailing),
-                                        in: .circle)
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Fr. Henri Nouwen, OP").font(LumenType.display(15)).foregroundStyle(t.ink)
-                            Text("Adapted from The Inner Voice of Love")
-                                .font(LumenType.ui(11)).foregroundStyle(t.inkSoft)
-                        }
-                        Spacer()
-                        Image(systemName: "heart").foregroundStyle(pal.accent)
-                    }
-                    .padding(14)
-                    .background(t.surface2, in: .rect(cornerRadius: 14))
-                    .overlay(RoundedRectangle(cornerRadius: 14).strokeBorder(t.rule, lineWidth: 0.5))
-                    .padding(.top, 24)
+                    content
                 }
                 .padding(.horizontal, 28)
                 .padding(.top, 24)
@@ -353,5 +382,70 @@ struct ReflectionScreen: View {
         }
         .background(t.bg.ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)
+    }
+
+    // MARK: States
+
+    @ViewBuilder
+    private var content: some View {
+        switch store.phase {
+        case .ready:
+            if let r = store.reflection {
+                DropCapText(r.body)
+                footer(for: r)
+            } else {
+                placeholder("Today's reflection isn't available yet.")
+            }
+        case .loading:
+            loadingState
+        case .error(let msg):
+            placeholder(msg)
+        case .signedOut:
+            placeholder("Sign in to see your reflection for today.")
+        case .idle:
+            placeholder("Today's reflection isn't available yet.")
+        }
+    }
+
+    private var loadingState: some View {
+        HStack(spacing: 8) {
+            ProgressView().tint(pal.accent)
+            Text("Composing today's reflection…")
+                .font(LumenType.serif(14).italic())
+                .foregroundStyle(t.inkMid)
+        }
+        .padding(.top, 4)
+    }
+
+    private func placeholder(_ text: String) -> some View {
+        Text(text)
+            .font(LumenType.serif(15))
+            .foregroundStyle(t.inkMid)
+            .lineSpacing(4)
+    }
+
+    private func footer(for r: DailyReflection) -> some View {
+        VStack(spacing: 8) {
+            Ornament(color: t.inkSoft).frame(maxWidth: 160)
+            Text("A reflection grounded in today's Gospel · generated for you")
+                .font(LumenType.ui(10).italic())
+                .foregroundStyle(t.inkSoft)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.top, 28)
+    }
+
+    // MARK: Derived
+
+    private var headerEyebrow: String {
+        Date().formatted(.dateTime.month(.abbreviated).day())
+    }
+
+    /// "Reflection on Mark 11:11–26" when ready; generic before.
+    private var eyebrowText: String {
+        if case .ready = store.phase, let r = store.reflection {
+            return "Reflection on \(r.gospelCitation)"
+        }
+        return "Today's Reflection"
     }
 }

@@ -37,7 +37,26 @@ nonisolated struct Saint: Decodable, Hashable, Sendable, Identifiable {
     /// once (no "St." vs "Saint" pairs).
     let romcalNames: [String]
 
+    /// Public-domain Catholic artwork bundled at `Resources/saint-art/{key}.jpg`.
+    /// Nil if the saint has no bundled artwork (modern saints w/o PD portraits,
+    /// or anyone we haven't curated yet — these fall back to the procedural
+    /// `ArtPlate` in views).
+    let artwork: SaintArtwork?
+
     var id: String { key }
+}
+
+/// Provenance for a saint's bundled artwork — honest attribution beneath the
+/// painting in `SaintScreen`, and in any future credits page.
+nonisolated struct SaintArtwork: Decodable, Hashable, Sendable {
+    /// Artist (e.g. "Caravaggio", "Sandro Botticelli", "Bartolomé Esteban Murillo").
+    let artist: String
+    /// Painting title in English.
+    let title: String
+    /// Year or year-range (e.g. "1480", "c. 1605-06", "1297-99").
+    let year: String
+    /// Originating institution (e.g. "Galleria Borghese, Rome", "National Gallery, London").
+    let source: String
 }
 
 /// On-disk shape of saints.json — a tiny envelope around the saints array so

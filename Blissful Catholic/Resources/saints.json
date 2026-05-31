@@ -15,7 +15,13 @@
         "Solemnity of Mary, the Holy Mother of God",
         "Mary, the Holy Mother of God",
         "Mary, Mother of God"
-      ]
+      ],
+      "artwork": {
+        "artist": "Giovanni Battista Salvi (Sassoferrato)",
+        "title": "The Virgin in Prayer",
+        "year": "c. 1640-50",
+        "source": "National Gallery, London"
+      }
     },
     {
       "key": "thomas-aquinas",
@@ -29,7 +35,13 @@
       "romcalNames": [
         "Saint Thomas Aquinas, Priest and Doctor of the Church",
         "Saint Thomas Aquinas"
-      ]
+      ],
+      "artwork": {
+        "artist": "Carlo Crivelli",
+        "title": "Saint Thomas Aquinas (Demidoff Altarpiece)",
+        "year": "1476",
+        "source": "National Gallery, London"
+      }
     },
     {
       "key": "patrick",
@@ -43,7 +55,8 @@
       "romcalNames": [
         "Saint Patrick, Bishop",
         "Saint Patrick"
-      ]
+      ],
+      "artwork": null
     },
     {
       "key": "joseph",
@@ -59,7 +72,13 @@
         "Saint Joseph, Husband of Mary",
         "Solemnity of Saint Joseph, Spouse of the Blessed Virgin Mary",
         "Saint Joseph"
-      ]
+      ],
+      "artwork": {
+        "artist": "Guido Reni",
+        "title": "Saint Joseph and the Christ Child",
+        "year": "c. 1635",
+        "source": "State Hermitage Museum"
+      }
     },
     {
       "key": "annunciation",
@@ -74,7 +93,13 @@
         "Annunciation of the Lord",
         "The Annunciation of the Lord",
         "Solemnity of the Annunciation of the Lord"
-      ]
+      ],
+      "artwork": {
+        "artist": "Sandro Botticelli",
+        "title": "Cestello Annunciation",
+        "year": "1489-90",
+        "source": "Uffizi Gallery, Florence"
+      }
     },
     {
       "key": "catherine-of-siena",
@@ -88,7 +113,13 @@
       "romcalNames": [
         "Saint Catherine of Siena, Virgin and Doctor of the Church",
         "Saint Catherine of Siena"
-      ]
+      ],
+      "artwork": {
+        "artist": "Andrea Vanni",
+        "title": "Saint Catherine of Siena",
+        "year": "c. 1390",
+        "source": "Basilica of San Domenico, Siena"
+      }
     },
     {
       "key": "athanasius",
@@ -102,7 +133,13 @@
       "romcalNames": [
         "Saint Athanasius, Bishop and Doctor of the Church",
         "Saint Athanasius"
-      ]
+      ],
+      "artwork": {
+        "artist": "Anonymous (Orthodox iconographer)",
+        "title": "Saint Athanasius of Alexandria",
+        "year": "Traditional icon (pre-1928)",
+        "source": "Public domain"
+      }
     },
     {
       "key": "philip-and-james",
@@ -116,7 +153,13 @@
       "romcalNames": [
         "Saints Philip and James, Apostles",
         "Saints Philip and James"
-      ]
+      ],
+      "artwork": {
+        "artist": "El Greco",
+        "title": "The Apostle Saint James the Less",
+        "year": "c. 1610",
+        "source": "Museo del Greco, Toledo"
+      }
     },
     {
       "key": "rita-of-cascia",
@@ -130,7 +173,13 @@
       "romcalNames": [
         "Saint Rita of Cascia, Religious",
         "Saint Rita of Cascia"
-      ]
+      ],
+      "artwork": {
+        "artist": "Anonymous (Italian Baroque)",
+        "title": "Saint Rita of Cascia",
+        "year": "17th-18th century",
+        "source": "Public domain devotional image"
+      }
     },
     {
       "key": "anthony-of-padua",
@@ -144,7 +193,13 @@
       "romcalNames": [
         "Saint Anthony of Padua, Priest and Doctor of the Church",
         "Saint Anthony of Padua"
-      ]
+      ],
+      "artwork": {
+        "artist": "Bartolomé Esteban Murillo",
+        "title": "The Vision of Saint Anthony of Padua",
+        "year": "1656",
+        "source": "Seville Cathedral"
+      }
     },
     {
       "key": "nativity-of-john-the-baptist",
@@ -159,7 +214,13 @@
         "Nativity of Saint John the Baptist",
         "The Nativity of Saint John the Baptist",
         "Solemnity of the Nativity of Saint John the Baptist"
-      ]
+      ],
+      "artwork": {
+        "artist": "Domenico Ghirlandaio",
+        "title": "The Birth of Saint John the Baptist",
+        "year": "1486-90",
+        "source": "Tornabuoni Chapel, Santa Maria Novella, Florence"
+      }
     },
     {
       "key": "peter-and-paul",
@@ -174,7 +235,13 @@
         "Saints Peter and Paul, Apostles",
         "Solemnity of Saints Peter and Paul, Apostles",
         "Saints Peter and Paul"
-      ]
+      ],
+      "artwork": {
+        "artist": "El Greco",
+        "title": "Saints Peter and Paul",
+        "year": "c. 1592",
+        "source": "Nationalmuseum, Stockholm"
+      }
     },
     {
       "key": "junipero-serra",
@@ -190,7 +257,13 @@
         "Saint Junipero Serra, Priest",
         "Saint Junípero Serra",
         "Saint Junipero Serra"
-      ]
+      ],
+      "artwork": {
+        "artist": "Anonymous (18th-century Spanish)",
+        "title": "Portrait of Junípero Serra",
+        "year": "c. 1785",
+        "source": "Public domain"
+      }
     },
     {
       "key": "thomas-apostle",
@@ -204,7 +277,13 @@
       "romcalNames": [
         "Saint Thomas, Apostle",
         "Saint Thomas the Apostle"
-      ]
+      ],
+      "artwork": {
+        "artist": "Caravaggio",
+        "title": "The Incredulity of Saint Thomas",
+        "year": "1601-02",
+        "source": "Sanssouci Picture Gallery, Potsdam"
+      }
     },
     {
       "key": "mary-magdalene",
@@ -218,7 +297,13 @@
       "romcalNames": [
         "Saint Mary Magdalene",
         "Mary Magdalene"
-      ]
+      ],
+      "artwork": {
+        "artist": "Caravaggio",
+        "title": "Penitent Magdalene",
+        "year": "c. 1594-95",
+        "source": "Galleria Doria Pamphilj, Rome"
+      }
     },
     {
       "key": "james-the-greater",
@@ -233,7 +318,13 @@
         "Saint James, Apostle",
         "Saint James the Greater, Apostle",
         "Saint James"
-      ]
+      ],
+      "artwork": {
+        "artist": "El Greco",
+        "title": "Saint James the Greater Freeing the Magician Hermogenes",
+        "year": "c. 1606",
+        "source": "Public domain"
+      }
     },
     {
       "key": "assumption",
@@ -249,7 +340,13 @@
         "The Assumption of the Blessed Virgin Mary",
         "Solemnity of the Assumption of the Blessed Virgin Mary",
         "Assumption of Mary"
-      ]
+      ],
+      "artwork": {
+        "artist": "Titian",
+        "title": "Assumption of the Virgin",
+        "year": "1516-18",
+        "source": "Basilica di Santa Maria Gloriosa dei Frari, Venice"
+      }
     },
     {
       "key": "bartholomew",
@@ -263,7 +360,13 @@
       "romcalNames": [
         "Saint Bartholomew, Apostle",
         "Saint Bartholomew"
-      ]
+      ],
+      "artwork": {
+        "artist": "Jusepe de Ribera",
+        "title": "The Martyrdom of Saint Bartholomew",
+        "year": "1634",
+        "source": "National Gallery of Art, Washington"
+      }
     },
     {
       "key": "augustine-of-hippo",
@@ -277,7 +380,13 @@
       "romcalNames": [
         "Saint Augustine, Bishop and Doctor of the Church",
         "Saint Augustine"
-      ]
+      ],
+      "artwork": {
+        "artist": "Sandro Botticelli",
+        "title": "Saint Augustine in His Study",
+        "year": "1480",
+        "source": "Chiesa di Ognissanti, Florence"
+      }
     },
     {
       "key": "our-lady-of-sorrows",
@@ -291,7 +400,13 @@
       "romcalNames": [
         "Our Lady of Sorrows",
         "Memorial of Our Lady of Sorrows"
-      ]
+      ],
+      "artwork": {
+        "artist": "Carlo Dolci",
+        "title": "Mater Dolorosa",
+        "year": "c. 1650",
+        "source": "Public domain (Google Art Project)"
+      }
     },
     {
       "key": "matthew",
@@ -305,7 +420,13 @@
       "romcalNames": [
         "Saint Matthew, Apostle and Evangelist",
         "Saint Matthew"
-      ]
+      ],
+      "artwork": {
+        "artist": "Caravaggio",
+        "title": "The Calling of Saint Matthew",
+        "year": "1599-1600",
+        "source": "Contarelli Chapel, San Luigi dei Francesi, Rome"
+      }
     },
     {
       "key": "padre-pio",
@@ -322,7 +443,8 @@
         "Saint Pio of Pietrelcina",
         "Saint Padre Pio",
         "Padre Pio"
-      ]
+      ],
+      "artwork": null
     },
     {
       "key": "jerome",
@@ -336,7 +458,13 @@
       "romcalNames": [
         "Saint Jerome, Priest and Doctor of the Church",
         "Saint Jerome"
-      ]
+      ],
+      "artwork": {
+        "artist": "Caravaggio",
+        "title": "Saint Jerome Writing",
+        "year": "c. 1605-06",
+        "source": "Galleria Borghese, Rome"
+      }
     },
     {
       "key": "therese-of-lisieux",
@@ -352,7 +480,13 @@
         "Saint Thérèse of Lisieux",
         "Saint Therese of Lisieux",
         "Saint Therese of the Child Jesus"
-      ]
+      ],
+      "artwork": {
+        "artist": "Céline Martin",
+        "title": "Photograph of Saint Thérèse of Lisieux",
+        "year": "1895",
+        "source": "Carmel of Lisieux (US public domain by date)"
+      }
     },
     {
       "key": "francis-of-assisi",
@@ -366,7 +500,13 @@
       "romcalNames": [
         "Saint Francis of Assisi",
         "Francis of Assisi"
-      ]
+      ],
+      "artwork": {
+        "artist": "Giotto di Bondone",
+        "title": "Stigmatization of Saint Francis (Pisa altarpiece)",
+        "year": "1297-99",
+        "source": "Louvre Museum, Paris"
+      }
     },
     {
       "key": "all-saints",
@@ -381,7 +521,13 @@
         "All Saints",
         "All Saints' Day",
         "Solemnity of All Saints"
-      ]
+      ],
+      "artwork": {
+        "artist": "Albrecht Dürer",
+        "title": "Adoration of the Trinity (Landauer Altarpiece)",
+        "year": "1511",
+        "source": "Kunsthistorisches Museum, Vienna"
+      }
     },
     {
       "key": "andrew",
@@ -395,7 +541,13 @@
       "romcalNames": [
         "Saint Andrew, Apostle",
         "Saint Andrew"
-      ]
+      ],
+      "artwork": {
+        "artist": "José de Ribera",
+        "title": "Saint Andrew",
+        "year": "c. 1630-32",
+        "source": "Museo del Prado, Madrid"
+      }
     },
     {
       "key": "immaculate-conception",
@@ -410,7 +562,13 @@
         "Immaculate Conception of the Blessed Virgin Mary",
         "The Immaculate Conception of the Blessed Virgin Mary",
         "Solemnity of the Immaculate Conception of the Blessed Virgin Mary"
-      ]
+      ],
+      "artwork": {
+        "artist": "Bartolomé Esteban Murillo",
+        "title": "Immaculate Conception",
+        "year": "c. 1678",
+        "source": "Museo del Prado, Madrid"
+      }
     },
     {
       "key": "our-lady-of-guadalupe",
@@ -424,7 +582,13 @@
       "romcalNames": [
         "Our Lady of Guadalupe",
         "Feast of Our Lady of Guadalupe"
-      ]
+      ],
+      "artwork": {
+        "artist": "Anonymous (the original tilma)",
+        "title": "Our Lady of Guadalupe",
+        "year": "1531",
+        "source": "Basilica of Our Lady of Guadalupe, Mexico City"
+      }
     },
     {
       "key": "john-the-evangelist",
@@ -439,7 +603,13 @@
         "Saint John, Apostle and Evangelist",
         "Saint John the Evangelist",
         "Saint John the Apostle and Evangelist"
-      ]
+      ],
+      "artwork": {
+        "artist": "Domenico Zampieri (Domenichino)",
+        "title": "Saint John the Evangelist",
+        "year": "c. 1620s",
+        "source": "Public domain"
+      }
     }
   ]
 }

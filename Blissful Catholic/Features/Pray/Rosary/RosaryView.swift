@@ -23,6 +23,7 @@ struct RosaryView: View {
 
     @State private var vm: RosaryViewModel
     @State private var showFull = false
+    @State private var showMysteryReflection = false
     @State private var startedAt = Date()
 
     init(resume: Bool = false) {
@@ -68,12 +69,43 @@ struct RosaryView: View {
         .sheet(isPresented: $showFull) {
             FullRosarySheet(vm: vm)
         }
+        .sheet(isPresented: $showMysteryReflection) {
+            AIReflectionView(
+                feature: "daily",
+                prompt: mysteryReflectionPrompt,
+                title: currentMysteryName.map { "Reflecting on \($0)" } ?? "Reflecting on this mystery",
+                reason: "Sign in for a reflection on this mystery."
+            )
+        }
         .onDisappear {
             // Save a resumable pointer if the user left mid-rosary.
             if !vm.isFinished, vm.index > 0 {
                 RosaryProgressStore.save(mystery: vm.mystery, index: vm.index)
             }
         }
+    }
+
+    // MARK: AI reflection on the current mystery
+
+    /// The mystery name for the current decade ("The Annunciation", "The Agony
+    /// in the Garden", etc.). Nil outside the five decade phases.
+    private var currentMysteryName: String? {
+        guard (1...5).contains(vm.current.phase) else { return nil }
+        return vm.mystery.mysteries[vm.current.phase - 1]
+    }
+
+    /// Grounded prompt for the "Reflect on this mystery" sheet — feeds the AI
+    /// the specific mystery the user is currently praying so the reflection is
+    /// about *this* event, not the Rosary in general.
+    private var mysteryReflectionPrompt: String {
+        let name = currentMysteryName ?? "this mystery"
+        let setName = vm.mystery.displayName  // e.g. "Joyful Mysteries"
+        return """
+        I'm praying the \(setName) and meditating on \(name). \
+        Offer me one specific insight from this mystery to carry as I pray \
+        this decade of Hail Marys — a few sentences, prayerful and grounded \
+        in Scripture or the Catholic tradition. Speak to me, not about me.
+        """
     }
 
     // MARK: Mystery selector
@@ -168,9 +200,7 @@ struct RosaryView: View {
                 .contentTransition(.opacity)
 
             if (1...5).contains(vm.current.phase) {
-                Button {
-                    // Phase 4: AI reflection on this mystery, tailored to the user.
-                } label: {
+                Button { showMysteryReflection = true } label: {
                     Label("Reflect on this mystery", systemImage: "sparkles")
                         .font(LumenType.ui(11))
                         .foregroundStyle(pal.accent)

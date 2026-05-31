@@ -2,10 +2,14 @@
 //  ProfileView.swift
 //  Blissful Catholic
 //
-//  Tab 5 ("You") — reskinned to Lumen: identity, the streak "garden" of candles,
-//  stats, sacramental record, and preferences. The Appearance section is wired
-//  to the real ThemeController (replacing Lumen's prototype Tweaks panel), so
-//  the user can switch ground (Parchment/Cathedral) and season live.
+//  Tab 5 ("You") — reskinned to Lumen. Sections: identity, the streak "garden"
+//  of candles (real, derived from prayer sessions + journal entries + rosaries),
+//  stats, account, and appearance (real ThemeController bindings).
+//
+//  Sacramental record and Preferences sections were removed in the pre-beta
+//  pass — they were hardcoded sample content. They'll return once we have
+//  real models behind them (e.g. user-logged confession/communion dates,
+//  user-configurable parish, daily-reminder scheduling).
 //
 
 import SwiftUI
@@ -48,11 +52,11 @@ struct ProfileView: View {
                     identityCard
                     streakGarden
                     statsRow
-                    sacramentalRecord
                     accountSection
                     appearanceSection
-                    preferencesSection
+                    #if DEBUG
                     devReset
+                    #endif
                 }
                 .padding(.horizontal, 20)
             }
@@ -124,9 +128,11 @@ struct ProfileView: View {
                     Text(profile.greetingName)
                         .font(LumenType.display(20))
                         .foregroundStyle(t.ink)
-                    Text(subtitleLine)
-                        .font(LumenType.serif(12).italic())
-                        .foregroundStyle(t.inkMid)
+                    if !subtitleLine.isEmpty {
+                        Text(subtitleLine)
+                            .font(LumenType.serif(12).italic())
+                            .foregroundStyle(t.inkMid)
+                    }
                 }
                 Spacer(minLength: 0)
                 Image(systemName: "chevron.right").font(.system(size: 13)).foregroundStyle(t.inkSoft)
@@ -168,12 +174,10 @@ struct ProfileView: View {
                 .padding(.horizontal, 4)
                 .background(t.surface3, in: .rect(cornerRadius: 10))
 
-                HStack {
-                    Text("S M T W T F S")
-                    Spacer()
-                    Text("WEEKLY")
-                }
-                .font(LumenType.mono(9)).tracking(0.6).foregroundStyle(t.inkSoft)
+                // Weekday axis labels removed: the grid is laid out as a flat
+                // 42-day timeline (left-to-right, top-to-bottom), so columns don't
+                // actually correspond to S M T W T F S. We'll add real weekday
+                // labels back once the grid is rebuilt as a week-aligned calendar.
             }
         }
     }
@@ -184,7 +188,8 @@ struct ProfileView: View {
         HStack(spacing: 10) {
             statTile("\(rosaries.count)", "Rosaries")
             statTile("\(entries.count)", "Journal entries")
-            statTile("23", "Saints met")
+            // "Saints met" tile hidden — was hardcoded "23"; will return when we track
+            // distinct saint deep-screen views in SwiftData.
         }
     }
 
@@ -197,44 +202,6 @@ struct ProfileView: View {
         .padding(.vertical, 14).padding(.horizontal, 12)
         .background(t.surface, in: .rect(cornerRadius: 14))
         .overlay(RoundedRectangle(cornerRadius: 14).strokeBorder(t.rule, lineWidth: 0.5))
-    }
-
-    // MARK: Sacramental record
-
-    private let sacraments: [(name: String, detail: String, cta: String?)] = [
-        ("Last Confession", "14 days ago · Fr. Jameson", "Examine"),
-        ("Next Mass", "Sat 5:00 PM · Vigil", "Locate"),
-        ("Last Communion", "Sunday May 19", nil),
-    ]
-
-    private var sacramentalRecord: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Eyebrow(text: "Sacramental Life", color: t.inkSoft).padding(.horizontal, 4)
-            LumenCard(padding: 0) {
-                VStack(spacing: 0) {
-                    ForEach(Array(sacraments.enumerated()), id: \.offset) { i, row in
-                        HStack {
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(row.name).font(LumenType.display(16)).foregroundStyle(t.ink)
-                                Text(row.detail).font(LumenType.serif(12).italic()).foregroundStyle(t.inkMid)
-                            }
-                            Spacer()
-                            if let cta = row.cta {
-                                Text(cta)
-                                    .font(LumenType.ui(11, weight: .medium))
-                                    .foregroundStyle(pal.accent)
-                                    .padding(.horizontal, 12).padding(.vertical, 6)
-                                    .overlay(Capsule().strokeBorder(pal.accent, lineWidth: 0.5))
-                            }
-                        }
-                        .padding(.horizontal, 18).padding(.vertical, 14)
-                        .overlay(alignment: .top) {
-                            if i > 0 { Rectangle().fill(t.ruleSoft).frame(height: 0.5) }
-                        }
-                    }
-                }
-            }
-        }
     }
 
     // MARK: Appearance (real settings — replaces Lumen's Tweaks)
@@ -285,40 +252,10 @@ struct ProfileView: View {
         theme.seasonOverride == nil ? "Automatic" : pal.name
     }
 
-    // MARK: Preferences (sample)
-
-    private let preferences: [(name: String, value: String, comingSoon: Bool)] = [
-        ("Daily reminder", "7:00 AM", false),
-        ("Bible translation", "RSV-2CE", false),
-        ("Parish", "St. Cecilia", false),
-        ("iCloud sync", "Coming soon", true),
-    ]
-
-    private var preferencesSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Eyebrow(text: "Preferences", color: t.inkSoft).padding(.horizontal, 4)
-            LumenCard(padding: 0) {
-                VStack(spacing: 0) {
-                    ForEach(Array(preferences.enumerated()), id: \.offset) { i, row in
-                        HStack {
-                            Text(row.name).font(LumenType.serif(14)).foregroundStyle(t.ink)
-                            Spacer()
-                            Text(row.value).font(LumenType.ui(12)).foregroundStyle(t.inkSoft)
-                            if !row.comingSoon {
-                                Image(systemName: "chevron.right").font(.system(size: 12)).foregroundStyle(t.inkSoft)
-                            }
-                        }
-                        .padding(.horizontal, 18).padding(.vertical, 14)
-                        .opacity(row.comingSoon ? 0.5 : 1)
-                        .overlay(alignment: .top) {
-                            if i > 0 { Rectangle().fill(t.ruleSoft).frame(height: 0.5) }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
+    #if DEBUG
+    /// Dev-only helper for re-running onboarding without reinstalling. Stripped
+    /// from Release / TestFlight builds via the `#if DEBUG` wrapper on its call
+    /// site in `body` (the button isn't even rendered there).
     private var devReset: some View {
         Button(role: .destructive) {
             profile.onboardingComplete = false
@@ -330,6 +267,7 @@ struct ProfileView: View {
         .frame(maxWidth: .infinity)
         .padding(.top, 8)
     }
+    #endif
 
     // MARK: Helpers
 
@@ -342,10 +280,9 @@ struct ProfileView: View {
         String(profile.greetingName.first ?? "✦").uppercased()
     }
     private var subtitleLine: String {
-        if let b = profile.background {
-            return "\(b.displayName) · St. Cecilia Parish"
-        }
-        return "St. Cecilia Parish"
+        // Parish was a hardcoded "St. Cecilia Parish" — dropped until users can set
+        // their own parish in ProfileEditView. Falls back to empty if no background.
+        profile.background?.displayName ?? ""
     }
 }
 

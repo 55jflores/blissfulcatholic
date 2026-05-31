@@ -22,9 +22,7 @@ struct PrayView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
-                    LumenScreenHeader(eyebrow: "Pray", title: "Pray") {
-                        LumenIconButton(systemImage: "magnifyingglass")
-                    }
+                    LumenScreenHeader(eyebrow: "Pray", title: "Pray")
 
                     NavigationLink(value: PrayRoute.rosary(resume: progress != nil)) { heroCard }
                         .buttonStyle(.plain)
@@ -38,22 +36,9 @@ struct PrayView: View {
                     .padding(.horizontal, 20)
                     .padding(.bottom, 18)
 
-                VStack(alignment: .leading, spacing: 0) {
-                    Eyebrow(text: "Practices", color: t.inkSoft)
-                        .padding(.horizontal, 4)
-                        .padding(.bottom, 10)
-                    practiceGrid
-                        .padding(.bottom, 22)
-
-                    Eyebrow(text: "Intentions", color: t.inkSoft)
-                        .padding(.horizontal, 4)
-                        .padding(.bottom, 10)
-                    intentionsCard
-
-                    libraryRow
-                        .padding(.top, 14)
-                }
-                .padding(.horizontal, 20)
+                    // TestFlight hiding pass: practice grid (5 of 6 tiles unwired),
+                    // intentions card (hardcoded counts and candle states), and the
+                    // library row (no destination) hidden until each gets a real backing.
             }
                 .padding(.bottom, 120)
             }

@@ -24,22 +24,15 @@ struct JournalView: View {
         ZStack(alignment: .bottomTrailing) {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
-                    LumenScreenHeader(eyebrow: "Journal", title: "Journal") {
-                        LumenIconButton(systemImage: "magnifyingglass")
-                    }
+                    LumenScreenHeader(eyebrow: "Journal", title: "Journal")
 
                     Button { composeNew = true } label: { promptCard }
                         .buttonStyle(.plain)
                         .padding(.horizontal, 20)
                         .padding(.bottom, 18)
 
-                    FlowLayout(spacing: 8, lineSpacing: 8) {
-                        ForEach(Array(chips.enumerated()), id: \.offset) { i, c in
-                            chip(c, active: i == activeChip)
-                        }
-                    }
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, 18)
+                    // TestFlight hiding pass: tag-filter chips hidden — they were visual
+                    // only (activeChip was a fixed index, no filtering wired).
 
                     Eyebrow(text: "Recent entries · \(entries.count) total", color: t.inkSoft)
                         .padding(.horizontal, 24)
@@ -73,7 +66,7 @@ struct JournalView: View {
 
     private var promptCard: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Eyebrow(text: "Tonight's Examen Prompt", color: pal.accent).padding(.bottom, 8)
+            Eyebrow(text: "Examen Prompt", color: pal.accent).padding(.bottom, 8)
             Text("Where did you sense God's presence today, even briefly?")
                 .font(LumenType.display(24).italic())
                 .foregroundStyle(t.ink)

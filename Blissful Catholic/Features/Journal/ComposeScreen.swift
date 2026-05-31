@@ -61,7 +61,7 @@ struct ComposeScreen: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
                     VStack(alignment: .leading, spacing: 8) {
-                        Eyebrow(text: "Tonight's Prompt · Examen", color: pal.accent)
+                        Eyebrow(text: "Examen Prompt", color: pal.accent)
                         Text("Where did you sense God's presence today, even briefly?")
                             .font(LumenType.display(22).italic())
                             .foregroundStyle(t.ink)

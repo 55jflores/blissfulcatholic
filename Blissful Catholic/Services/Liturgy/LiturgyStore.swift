@@ -75,6 +75,7 @@ final class LiturgyStore {
     #if DEBUG
     private static let debugDateOverride: String? = nil
     // Examples while content-wiring:
+    //   "2026-06-24"  → Nativity of St. John the Baptist (Solemnity)
     //   "2026-08-15"  → Assumption (Solemnity)
     //   "2026-08-28"  → Augustine (Memorial)
     //   "2026-07-22"  → Mary Magdalene (Feast)

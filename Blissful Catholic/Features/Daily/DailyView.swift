@@ -14,25 +14,37 @@ enum DailyRoute: Hashable {
     case reading(ReadingItem)
     case saint(Saint)
     case reflection
+    case intentions
 }
 
 struct DailyView: View {
     @Environment(\.lumenTokens) private var t
     @Environment(\.lumenPalette) private var pal
     @Environment(\.modelContext) private var context
+    @Environment(AuthStore.self) private var auth
+    @Environment(UserProfileStore.self) private var profile
 
-    @State private var prayed = false
     @State private var showReflection = false
     @State private var liturgy = LiturgyStore()
+    @State private var reflectionStore = DailyReflectionStore.shared
+
+    /// Active intentions sorted most-recent-first. The card features the first
+    /// one; the deep list (`IntentionsListView`) shows them all.
+    @Query(filter: #Predicate<Intention> { $0.completedAt == nil },
+           sort: \Intention.createdAt, order: .reverse)
+    private var activeIntentions: [Intention]
+    /// Today's Gospel text + citation, cached after `loadDailyReflection` resolves
+    /// them. Used to ground the "Reflect with your companion" sheet prompt so its
+    /// AI sees the same passage the reflection card was generated from.
+    @State private var todayGospelText = ""
+    @State private var todayGospelCitation = ""
     private let now = Date()
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
-                    LumenScreenHeader(eyebrow: headerEyebrow, title: monthDay) {
-                        LumenIconButton(systemImage: "bell")
-                    }
+                    LumenScreenHeader(eyebrow: headerEyebrow, title: monthDay)
 
                     verse
                     Ornament(color: t.inkSoft)
@@ -43,9 +55,8 @@ struct DailyView: View {
                         reflectWithAI
                         readingsCard
                         saintCard
-                        NavigationLink(value: DailyRoute.reflection) { reflectionCard }
-                            .buttonStyle(.plain)
-                        intentionSection
+                        reflectionCard
+                        intentionCard
                     }
                     .padding(.horizontal, 20)
                 }
@@ -57,17 +68,20 @@ struct DailyView: View {
                 case .reading(let r):  ReadingScreen(reading: r)
                 case .saint(let s):    SaintScreen(saint: s)
                 case .reflection:      ReflectionScreen()
+                case .intentions:      IntentionsListView()
                 }
             }
             .toolbar(.hidden, for: .navigationBar)
             .task { await liturgy.loadToday() }
             .task(id: liturgy.today?.date) { await loadFirstVerses() }
             .task(id: liturgy.today?.celebration) { await loadSaint() }
+            .task(id: liturgy.today?.date) { await loadDailyReflection() }
+            .task(id: auth.isSignedIn) { await loadDailyReflection() }
         }
         .sheet(isPresented: $showReflection) {
             AIReflectionView(
                 feature: "daily",
-                prompt: "Give me a short, personal reflection to pray with today."
+                prompt: companionPrompt
             )
         }
     }
@@ -239,6 +253,32 @@ struct DailyView: View {
         }
     }
 
+    /// Resolves the bundled public-domain painting for this saint. Same lookup
+    /// as `SaintScreen.bundledArtwork`. Nil for saints with no curated artwork
+    /// (Patrick, Padre Pio at this time), which fall back to the procedural
+    /// `ArtPlate` below.
+    private func bundledArtwork(for saint: Saint) -> UIImage? {
+        guard let url = Bundle.main.url(forResource: saint.key, withExtension: "jpg"),
+              let data = try? Data(contentsOf: url)
+        else { return nil }
+        return UIImage(data: data)
+    }
+
+    /// 140×170 art slot for the Daily card. Bumped up from the original 108×130
+    /// so that multi-figure Renaissance paintings stay legible at thumbnail size.
+    @ViewBuilder
+    private func saintArtThumbnail(for saint: Saint) -> some View {
+        if let uiImage = bundledArtwork(for: saint) {
+            Image(uiImage: uiImage)
+                .resizable()
+                .scaledToFill()
+                .frame(width: 140, height: 170)
+                .clipped()
+        } else {
+            ArtPlate(label: saint.artPlateLabel, hue: 20, width: 140, height: 170, cornerRadius: 0)
+        }
+    }
+
     /// Hidden entirely on days the catalog can't resolve — cleaner than showing
     /// a stale saint.
     @ViewBuilder
@@ -246,12 +286,18 @@ struct DailyView: View {
         if let saint = todaySaint {
             NavigationLink(value: DailyRoute.saint(saint)) {
                 LumenCard(padding: 0) {
-                    HStack(spacing: 0) {
-                        ArtPlate(label: saint.artPlateLabel, hue: 20, width: 108, height: 130, cornerRadius: 0)
+                    HStack(spacing: 14) {
+                        saintArtThumbnail(for: saint)
+                            .clipShape(.rect(cornerRadius: 8))
                         VStack(alignment: .leading, spacing: 8) {
                             VStack(alignment: .leading, spacing: 2) {
                                 Eyebrow(text: rankDisplay, color: pal.accent)
-                                Text(saint.name).font(LumenType.display(22)).foregroundStyle(t.ink)
+                                Text(saint.name)
+                                    .font(LumenType.display(22))
+                                    .foregroundStyle(t.ink)
+                                    .lineLimit(2)
+                                    .minimumScaleFactor(0.85)
+                                    .fixedSize(horizontal: false, vertical: true)
                                 if let patronage = saint.patronage {
                                     Text(patronage)
                                         .font(LumenType.serif(12).italic()).foregroundStyle(t.inkMid)
@@ -261,9 +307,9 @@ struct DailyView: View {
                             Text(saint.blurb)
                                 .font(LumenType.serif(12)).foregroundStyle(t.inkMid).lineSpacing(2)
                         }
-                        .padding(.horizontal, 18).padding(.vertical, 14)
                         .frame(maxWidth: .infinity, alignment: .leading)
                     }
+                    .padding(14)
                 }
             }
             .buttonStyle(.plain)
@@ -272,64 +318,237 @@ struct DailyView: View {
 
     // MARK: Reflection
 
+    /// Only the reflection generated *for today's date* counts as "ready" — the
+    /// store may still hold yesterday's cached value briefly after midnight
+    /// rollover until the new one arrives.
+    private var todaysReflection: DailyReflection? {
+        guard let r = reflectionStore.reflection,
+              r.date == liturgy.today?.date else { return nil }
+        return r
+    }
+
+    /// State-aware reflection card:
+    ///   - ready: tappable preview → ReflectionScreen
+    ///   - loading: a small skeleton while the AI call is in flight
+    ///   - error: a quiet error pill
+    ///   - signedOut / idle: hidden (the "Reflect with your companion" CTA at
+    ///     the top already handles signed-out users who want AI)
+    @ViewBuilder
     private var reflectionCard: some View {
-        LumenCard {
-            VStack(alignment: .leading, spacing: 8) {
-                Eyebrow(text: "Reflection · 3 min read", color: pal.accent)
-                Text("On the kind of joy that does not depend on circumstance.")
-                    .font(LumenType.display(19)).foregroundStyle(t.ink).lineSpacing(2)
-                Text("“Your grief will become joy” — not be replaced, not be undone. The Lord names a transformation only sorrow can prepare us for…")
-                    .font(LumenType.serif(13)).foregroundStyle(t.inkMid).lineSpacing(3)
-                HStack(spacing: 8) {
-                    Text("F")
-                        .font(LumenType.display(12).italic()).foregroundStyle(t.goldDeep)
-                        .frame(width: 22, height: 22).background(t.surface3, in: .circle)
-                    Text("Fr. Henri Nouwen, OP").font(LumenType.ui(11)).foregroundStyle(t.inkSoft)
+        if let r = todaysReflection {
+            NavigationLink(value: DailyRoute.reflection) {
+                LumenCard {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Eyebrow(text: "Today's Reflection · ~2 min", color: pal.accent)
+                        Text(Self.reflectionPreview(r.body))
+                            .font(LumenType.display(19).italic())
+                            .foregroundStyle(t.ink)
+                            .lineSpacing(3)
+                            .lineLimit(3)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Text("On today's Gospel · \(r.gospelCitation)")
+                            .font(LumenType.ui(11))
+                            .foregroundStyle(t.inkSoft)
+                            .padding(.top, 6)
+                    }
                 }
-                .padding(.top, 6)
+            }
+            .buttonStyle(.plain)
+        } else if reflectionStore.phase == .loading {
+            LumenCard {
+                HStack(spacing: 10) {
+                    ProgressView().tint(pal.accent)
+                    Text("Composing today's reflection…")
+                        .font(LumenType.serif(14).italic())
+                        .foregroundStyle(t.inkMid)
+                }
+            }
+        } else if case .error(let msg) = reflectionStore.phase {
+            LumenCard {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Couldn't load today's reflection.")
+                        .font(LumenType.serif(14))
+                        .foregroundStyle(t.inkMid)
+                    Text(msg)
+                        .font(LumenType.ui(11))
+                        .foregroundStyle(t.inkSoft)
+                        .lineLimit(2)
+                }
             }
         }
+        // .idle and .signedOut → hidden; the top "Reflect with your companion"
+        // button is the sign-in / AI entry point in those states.
+    }
+
+    /// First two sentences (or first ~180 chars) of the body, for the card preview.
+    static func reflectionPreview(_ body: String) -> String {
+        let chars = Array(body)
+        var sentenceEnds: [Int] = []
+        for (i, c) in chars.enumerated() where c == "." || c == "!" || c == "?" {
+            sentenceEnds.append(i)
+            if sentenceEnds.count == 2 { break }
+        }
+        if sentenceEnds.count == 2 {
+            return String(chars[0...sentenceEnds[1]])
+        }
+        return body.count > 180 ? String(body.prefix(180)) + "…" : body
+    }
+
+    /// Fetch today's Gospel text from BibleService and hand it to the
+    /// DailyReflectionStore (which handles caching + the AI call). Idempotent —
+    /// fires on liturgy-loaded and on sign-in transitions. Also caches the
+    /// Gospel text + citation into `@State` so the companion sheet's prompt can
+    /// reuse them without a second BibleService lookup.
+    private func loadDailyReflection() async {
+        guard let day = liturgy.today,
+              let gospel = day.readings?.first(where: { $0.label == "Gospel" })
+        else { return }
+        let token = await auth.accessToken()
+        let verses = await BibleService.shared.verses(forCitation: gospel.citation)
+        let gospelText = verses.map(\.text).joined(separator: " ")
+        todayGospelText = gospelText
+        todayGospelCitation = gospel.citation
+        let personalization = AppContext.current(profile: profile).systemPromptFragment
+        await reflectionStore.loadIfNeeded(
+            date: day.date,
+            gospelCitation: gospel.citation,
+            gospelText: gospelText,
+            token: token,
+            personalization: personalization
+        )
+    }
+
+    /// Prompt for the "Reflect with your companion" sheet. Grounds the AI in
+    /// today's Gospel when we have it; falls back to a generic ask when the
+    /// passage hasn't resolved yet (offline, mid-load, or signed out).
+    private var companionPrompt: String {
+        guard !todayGospelText.isEmpty else {
+            return "Give me a short, personal reflection to pray with today."
+        }
+        return """
+        Pray with me on today's Gospel — \(todayGospelCitation):
+
+        "\(todayGospelText)"
+
+        Offer a brief, personal reflection — just a few sentences — and give me one specific thing to bring into prayer today.
+        """
     }
 
     // MARK: Intention
 
-    private var intentionSection: some View {
+    /// Most-recently-created active intention, "featured" on the home card.
+    private var featuredIntention: Intention? { activeIntentions.first }
+
+    @ViewBuilder
+    private var intentionCard: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Eyebrow(text: "Today's intention", color: t.inkSoft).padding(.horizontal, 4)
-            LumenCard(padding: 16) {
-                HStack(spacing: 14) {
-                    Candle(size: 22, lit: prayed)
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("For my mother's health.").font(LumenType.display(17)).foregroundStyle(t.ink)
-                        Text("Day 4 · burning").font(LumenType.ui(11)).foregroundStyle(t.inkSoft)
-                    }
-                    Spacer(minLength: 0)
-                    Button { logPrayed() } label: {
-                        Text(prayed ? "Prayed" : "I prayed")
-                            .font(LumenType.ui(11, weight: .medium))
-                            .foregroundStyle(prayed ? .white : pal.accent)
-                            .padding(.horizontal, 14).padding(.vertical, 8)
-                            .background(prayed ? pal.accent : .clear, in: .capsule)
-                            .overlay(Capsule().strokeBorder(prayed ? .clear : t.rule, lineWidth: 0.5))
+            HStack {
+                Eyebrow(text: "Today's intention", color: t.inkSoft)
+                Spacer()
+                if !activeIntentions.isEmpty {
+                    NavigationLink(value: DailyRoute.intentions) {
+                        HStack(spacing: 2) {
+                            Text("View all").font(LumenType.ui(11))
+                            Image(systemName: "chevron.right").font(.system(size: 10))
+                        }
+                        .foregroundStyle(t.inkSoft)
                     }
                     .buttonStyle(.plain)
-                    .sensoryFeedback(.success, trigger: prayed) { _, now in now }
                 }
+            }
+            .padding(.horizontal, 4)
+
+            if let featured = featuredIntention {
+                LumenCard(padding: 16) {
+                    HStack(spacing: 14) {
+                        // Left side — candle + text — taps into the deep list.
+                        NavigationLink(value: DailyRoute.intentions) {
+                            HStack(spacing: 14) {
+                                Candle(size: 22, lit: true)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(featured.text)
+                                        .font(LumenType.display(17))
+                                        .foregroundStyle(t.ink)
+                                        .multilineTextAlignment(.leading)
+                                        .lineLimit(2)
+                                    Text(intentionMetaLine(featured))
+                                        .font(LumenType.ui(11))
+                                        .foregroundStyle(t.inkSoft)
+                                }
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                        .buttonStyle(.plain)
+
+                        prayedButton(for: featured)
+                    }
+                }
+            } else {
+                NavigationLink(value: DailyRoute.intentions) {
+                    HStack(spacing: 14) {
+                        Image(systemName: "plus.circle")
+                            .font(.system(size: 22))
+                            .foregroundStyle(pal.accent)
+                        Text("Set a prayer intention")
+                            .font(LumenType.display(17).italic())
+                            .foregroundStyle(t.inkMid)
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 13))
+                            .foregroundStyle(t.inkSoft)
+                    }
+                    .padding(16)
+                    .background(t.surface, in: .rect(cornerRadius: 14))
+                    .overlay(RoundedRectangle(cornerRadius: 14).strokeBorder(t.rule, lineWidth: 0.5))
+                }
+                .buttonStyle(.plain)
             }
         }
     }
 
-    private func logPrayed() {
-        if !prayed {
-            let session = PrayerSession()
-            session.date = .now
-            session.feature = .examen
-            session.completed = true
-            session.notes = "Intention"
-            context.insert(session)
-            try? context.save()
+    private func intentionMetaLine(_ intention: Intention) -> String {
+        var parts = ["Day \(intention.dayCount)"]
+        if intention.prayerCount > 0 {
+            parts.append("\(intention.prayerCount) \(intention.prayerCount == 1 ? "prayer" : "prayers")")
         }
-        prayed.toggle()
+        if intention.prayedToday {
+            parts.append("prayed today")
+        }
+        return parts.joined(separator: " · ")
+    }
+
+    private func prayedButton(for intention: Intention) -> some View {
+        Button { logPrayed(intention) } label: {
+            Text(intention.prayedToday ? "Prayed" : "I prayed")
+                .font(LumenType.ui(11, weight: .medium))
+                .foregroundStyle(intention.prayedToday ? .white : pal.accent)
+                .padding(.horizontal, 14).padding(.vertical, 8)
+                .background(intention.prayedToday ? pal.accent : .clear, in: .capsule)
+                .overlay(Capsule()
+                    .strokeBorder(intention.prayedToday ? .clear : pal.accent.opacity(0.5),
+                                  lineWidth: 0.5))
+        }
+        .buttonStyle(.plain)
+        .sensoryFeedback(.success, trigger: intention.prayedToday) { _, now in now }
+    }
+
+    private func logPrayed(_ intention: Intention) {
+        guard !intention.prayedToday else { return }
+        intention.prayerCount += 1
+        intention.lastPrayedAt = .now
+
+        // Also create a PrayerSession so the day shows up as "active" in the
+        // streak garden (Profile → Days of Prayer). The `notes` keeps a
+        // breadcrumb back to which intention prompted this — useful later when
+        // we want a per-day "what you prayed for" view.
+        let session = PrayerSession()
+        session.date = .now
+        session.feature = .intention
+        session.completed = true
+        session.notes = intention.text
+        context.insert(session)
+
+        try? context.save()
     }
 
     /// Header eyebrow — prefers the real liturgical day when loaded; falls back to

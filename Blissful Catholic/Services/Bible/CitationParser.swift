@@ -165,7 +165,9 @@ nonisolated enum CitationParser {
         ("nehemiah", "NEH"), ("neh", "NEH"),
         ("tobit", "TOB"), ("tob", "TOB"), ("tb", "TOB"),
         ("judith", "JDT"), ("jdt", "JDT"),
-        ("esther", "EST"), ("esth", "EST"), ("est", "EST"),
+        // Bundled WEBCE ships the Catholic (Greek) Esther under "ESG" — includes
+        // the deuterocanonical additions inline.
+        ("esther", "ESG"), ("esth", "ESG"), ("est", "ESG"),
         ("1 maccabees", "1MA"), ("1maccabees", "1MA"),
         ("1 mac", "1MA"), ("1mac", "1MA"), ("1 mc", "1MA"), ("1mc", "1MA"),
         ("2 maccabees", "2MA"), ("2maccabees", "2MA"),
@@ -182,7 +184,11 @@ nonisolated enum CitationParser {
         ("lamentations", "LAM"), ("lam", "LAM"),
         ("baruch", "BAR"), ("bar", "BAR"),
         ("ezekiel", "EZK"), ("ezek", "EZK"), ("ezk", "EZK"), ("ez", "EZK"),
-        ("daniel", "DAN"), ("dan", "DAN"), ("dn", "DAN"),
+        // Bundled WEBCE ships the Catholic (Greek) Daniel under "DAG" — Chapter 3
+        // runs to verse 97 and includes the Song of the Three Young Men
+        // (3:24-90), which is the source of the Trinity Sunday canticle
+        // "Daniel 3:52, 53, 54, 55, 56".
+        ("daniel", "DAG"), ("dan", "DAG"), ("dn", "DAG"),
         ("hosea", "HOS"), ("hos", "HOS"),
         ("joel", "JOL"), ("jl", "JOL"),
         ("amos", "AMO"), ("am", "AMO"),

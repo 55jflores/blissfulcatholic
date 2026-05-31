@@ -32,41 +32,16 @@ struct LearnView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
-                LumenScreenHeader(eyebrow: "Learn", title: "Learn") {
-                    LumenIconButton(systemImage: "magnifyingglass")
-                }
+                LumenScreenHeader(eyebrow: "Learn", title: "Learn")
 
                 askCatechism
                     .padding(.horizontal, 20)
                     .padding(.bottom, 20)
 
-                featuredCourse
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, 20)
-
-                VStack(alignment: .leading, spacing: 0) {
-                    HStack(alignment: .firstTextBaseline) {
-                        Eyebrow(text: "Continue", color: t.inkSoft)
-                        Spacer()
-                        Text("3 in progress")
-                            .font(LumenType.ui(11))
-                            .foregroundStyle(pal.accent)
-                    }
-                    .padding(.horizontal, 4)
-                    .padding(.bottom, 10)
-
-                    ForEach(Array(paths.enumerated()), id: \.offset) { _, p in
-                        pathCard(p)
-                            .padding(.bottom, 10)
-                    }
-
-                    Eyebrow(text: "Library", color: t.inkSoft)
-                        .padding(.horizontal, 4)
-                        .padding(.top, 10)
-                        .padding(.bottom, 10)
-                    libraryCard
-                }
-                .padding(.horizontal, 20)
+                // TestFlight hiding pass: featured course ("Theology of the Body"),
+                // Continue paths (3 hardcoded progress entries), and Library shelves
+                // (5 hardcoded counts with unwired chevrons) hidden until each has a
+                // real reader / course system / search behind it.
             }
             .padding(.bottom, 120)
         }

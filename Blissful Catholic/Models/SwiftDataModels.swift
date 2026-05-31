@@ -92,10 +92,40 @@ final class ConfessionLog {
     init() {}
 }
 
+/// A prayer intention a user is holding ("For my mother's health"). Lives on
+/// the Daily home screen and the dedicated IntentionsListView. "Burning" =
+/// active; user can mark "answered" to archive without losing history.
+@Model
+final class Intention {
+    var text: String = ""
+    var createdAt: Date = Date.now
+    /// Nil while active; set when the user marks the intention answered.
+    var completedAt: Date?
+    /// Most recent "I prayed" tap; nil = never prayed for yet.
+    var lastPrayedAt: Date?
+    /// Total taps over the intention's lifetime.
+    var prayerCount: Int = 0
+
+    init() {}
+
+    var isActive: Bool { completedAt == nil }
+
+    /// Days since creation, rounded down. Day 0 on creation day.
+    var dayCount: Int {
+        Calendar.current.dateComponents([.day], from: createdAt, to: .now).day ?? 0
+    }
+
+    var prayedToday: Bool {
+        guard let last = lastPrayedAt else { return false }
+        return Calendar.current.isDateInToday(last)
+    }
+}
+
 /// All persisted model types, in one place for the container + previews.
 enum AppSchema {
     static let models: [any PersistentModel.Type] = [
         UserProfile.self, JournalEntry.self, PrayerSession.self,
         RosaryLog.self, SpiritualInsight.self, ConfessionLog.self,
+        Intention.self,
     ]
 }
