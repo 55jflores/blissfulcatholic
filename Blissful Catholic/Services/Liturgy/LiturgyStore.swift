@@ -42,9 +42,13 @@ final class LiturgyStore {
     private let base = SupabaseConfig.apiBaseURL
 
     /// Loads today's liturgical day (no-op if already loaded for the current date).
-    func loadToday() async {
+    /// Pass `force: true` to bypass the same-date short-circuit — used by
+    /// pull-to-refresh so the user can re-pull when the upstream readings source
+    /// has backfilled missing fields (a common case for the Responsorial Psalm
+    /// on optional-memorial days).
+    func loadToday(force: Bool = false) async {
         let date = Self.localDateString()
-        if today?.date == date { return }
+        if !force, today?.date == date { return }
 
         guard var comps = URLComponents(
             url: base.appending(path: "api/liturgy"), resolvingAgainstBaseURL: false

@@ -25,11 +25,23 @@ struct ComposeScreen: View {
     @State private var showInsight = false
     @FocusState private var focused: Bool
 
+    /// Survives any app kill (force-quit, low-memory eviction, call interruption)
+    /// without writing to SwiftData. Only used for *new* entries — for an existing
+    /// entry, the saved content lives in SwiftData and we leave the draft alone.
+    /// Cleared on successful save; preserved when the user just backs out without
+    /// saving, so they can pick up where they left off on next open.
+    @SceneStorage("compose.newEntryDraft") private var savedDraft: String = ""
+
     private var hasContent: Bool {
         !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
-    private let tags = ["Examen", "Gratitude", "Intention", "Mass", "Confession prep"]
+    // "Confession prep" was dropped — the Examen already encompasses examination
+    // of conscience (the Ignatian Examen's second movement IS confession prep),
+    // so users with confession on their mind tag as Examen. Older entries saved
+    // with "Confession prep" keep that exact string in storage and display it
+    // verbatim in the journal list; on edit, the pill row falls back to Examen.
+    private let tags = ["Examen", "Gratitude", "Intention", "Mass"]
 
     var body: some View {
         VStack(spacing: 0) {
@@ -84,6 +96,11 @@ struct ComposeScreen: View {
         .background(t.bg.ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)
         .onAppear(perform: loadOnce)
+        .onChange(of: text) { _, newValue in
+            // Live-sync new-entry drafts to scene storage. Editing an existing
+            // entry doesn't touch the draft — its source of truth is SwiftData.
+            if entry == nil { savedDraft = newValue }
+        }
         .sheet(isPresented: $showInsight) {
             AIReflectionView(
                 feature: "journal_insight",
@@ -95,9 +112,14 @@ struct ComposeScreen: View {
     }
 
     private func loadOnce() {
-        if !loaded, let entry {
-            text = entry.content
-            activeTag = tags.firstIndex(of: entry.tag) ?? 0
+        if !loaded {
+            if let entry {
+                text = entry.content
+                activeTag = tags.firstIndex(of: entry.tag) ?? 0
+            } else if !savedDraft.isEmpty {
+                // Resume an in-flight new entry that survived an app kill.
+                text = savedDraft
+            }
         }
         loaded = true
         focused = true
@@ -118,6 +140,9 @@ struct ComposeScreen: View {
             context.insert(e)
         }
         try? context.save()
+        // New entry committed (or discarded as empty) — clear the in-flight draft
+        // so the next New Entry opens fresh. Edits don't touch the draft.
+        if entry == nil { savedDraft = "" }
         dismiss()
     }
 
@@ -147,7 +172,11 @@ struct ComposeScreen: View {
                 .padding(.leading, 60)
                 .padding(.trailing, 22)
                 .padding(.vertical, 22)
-                .frame(minHeight: 300, alignment: .topLeading)
+                // Initial paper height is sized so the "Tag this entry" row is
+                // visible above the keyboard on first open. The TextField uses
+                // `axis: .vertical`, so the paper grows organically as the user
+                // writes — and the tag row scrolls off as expected past ~5 lines.
+                .frame(minHeight: 220, alignment: .topLeading)
         }
     }
 

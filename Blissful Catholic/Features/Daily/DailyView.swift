@@ -22,6 +22,7 @@ struct DailyView: View {
     @Environment(\.lumenTokens) private var t
     @Environment(\.lumenPalette) private var pal
     @Environment(\.modelContext) private var context
+    @Environment(\.scenePhase) private var scenePhase
     @Environment(AuthStore.self) private var auth
     @Environment(UserProfileStore.self) private var profile
 
@@ -39,7 +40,10 @@ struct DailyView: View {
     /// AI sees the same passage the reflection card was generated from.
     @State private var todayGospelText = ""
     @State private var todayGospelCitation = ""
-    private let now = Date()
+    /// "Now" for date-derived UI (header date, time-of-day greeting). State so we
+    /// can refresh it when the app foregrounds — picks up midnight rollover and
+    /// keeps the time-of-day reflection subtitle accurate across long sessions.
+    @State private var now = Date()
 
     var body: some View {
         NavigationStack {
@@ -75,12 +79,28 @@ struct DailyView: View {
                 }
             }
             .toolbar(.hidden, for: .navigationBar)
+            .refreshable {
+                // Pull-to-refresh: force-reload everything that depends on the
+                // upstream liturgy/readings source. Useful in the morning when
+                // the third-party readings JSON hasn't backfilled the Psalm yet.
+                await liturgy.loadToday(force: true)
+                await loadFirstVerses()
+                await loadSaint()
+                await loadDailyReflection()
+            }
             .task { await liturgy.loadToday() }
             .task { await loadMonthlyDevotion() }
             .task(id: liturgy.today?.date) { await loadFirstVerses() }
             .task(id: liturgy.today?.celebration) { await loadSaint() }
             .task(id: liturgy.today?.date) { await loadDailyReflection() }
             .task(id: auth.isSignedIn) { await loadDailyReflection() }
+            .onChange(of: scenePhase) { _, newPhase in
+                // Re-check the day on foreground so a session that crossed
+                // midnight refreshes the saint, readings, and reflection.
+                guard newPhase == .active else { return }
+                now = Date()
+                Task { await liturgy.loadToday() }
+            }
         }
         .sheet(isPresented: $showReflection) {
             AIReflectionView(
@@ -94,8 +114,21 @@ struct DailyView: View {
 
     private var reflectWithAI: some View {
         AICTAButton(title: "Reflect with your companion",
-                    subtitle: "A reflection shaped for you, today") {
+                    subtitle: reflectionSubtitle) {
             showReflection = true
+        }
+    }
+
+    /// Subtitle that adapts to the time of day. Refreshes on app foreground (via
+    /// the scenePhase observer that updates `now`), so a phone left open
+    /// through the evening will pick up the new framing on next view.
+    private var reflectionSubtitle: String {
+        let hour = Calendar.current.component(.hour, from: now)
+        switch hour {
+        case 5..<11:  return "A reflection for the start of your day"
+        case 11..<16: return "A reflection for your midday pause"
+        case 16..<21: return "A reflection for your evening prayer"
+        default:      return "A reflection for the end of your day"
         }
     }
 
@@ -283,8 +316,11 @@ struct DailyView: View {
         }
     }
 
-    /// Hidden entirely on days the catalog can't resolve — cleaner than showing
-    /// a stale saint.
+    /// Three states:
+    ///   1. `todaySaint != nil` → render the real card
+    ///   2. `liturgy.today == nil` → render a skeleton (initial load — we don't
+    ///      yet know whether there'll be a saint today)
+    ///   3. liturgy loaded but no saint → hidden (feria or saint not in catalog)
     @ViewBuilder
     private var saintCard: some View {
         if let saint = todaySaint {
@@ -317,6 +353,8 @@ struct DailyView: View {
                 }
             }
             .buttonStyle(.plain)
+        } else if liturgy.today == nil {
+            cardSkeleton(titleWidth: 150, subtitleWidth: 110)
         }
     }
 
@@ -363,6 +401,8 @@ struct DailyView: View {
 
     /// Mirrors the saint card layout — painting thumbnail on the left, text on
     /// the right. Drills into `MonthlyDevotionScreen` with the full artwork.
+    /// Shows a skeleton while the bundled catalog is loading (very brief in
+    /// practice; only visible on a cold app launch).
     @ViewBuilder
     private var devotionCard: some View {
         if let devotion = monthlyDevotion {
@@ -395,7 +435,41 @@ struct DailyView: View {
                 }
             }
             .buttonStyle(.plain)
+        } else {
+            cardSkeleton(titleWidth: 160, subtitleWidth: 100)
         }
+    }
+
+    // MARK: Skeleton
+
+    /// Shared skeleton card matching the saint/devotion thumbnail-and-text
+    /// layout. Pure shapes — no animation — so the screen settles rather than
+    /// shimmers. Sized to mirror the real card so layout doesn't jump when
+    /// content loads in.
+    private func cardSkeleton(titleWidth: CGFloat, subtitleWidth: CGFloat) -> some View {
+        LumenCard(padding: 0) {
+            HStack(spacing: 14) {
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(t.surface3)
+                    .frame(width: 140, height: 170)
+                VStack(alignment: .leading, spacing: 8) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Capsule().fill(t.surface3).frame(width: 80, height: 10)
+                        Capsule().fill(t.surface3).frame(width: titleWidth, height: 18)
+                        Capsule().fill(t.surface3).frame(width: subtitleWidth, height: 11)
+                    }
+                    Spacer(minLength: 0)
+                    VStack(alignment: .leading, spacing: 5) {
+                        Capsule().fill(t.surface3).frame(height: 9)
+                        Capsule().fill(t.surface3).frame(height: 9)
+                        Capsule().fill(t.surface3).frame(width: 140, height: 9)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .padding(14)
+        }
+        .accessibilityHidden(true)
     }
 
     // MARK: Reflection
@@ -641,6 +715,8 @@ struct DailyView: View {
         return day.celebration
     }
 
+    // These read from `now` (a @State that scenePhase refreshes on foreground),
+    // so a phone left open across midnight will pick up the new date.
     private var weekday: String { now.formatted(.dateTime.weekday(.wide)) }
     private var monthDay: String { now.formatted(.dateTime.month(.abbreviated).day()) }
 }

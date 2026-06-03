@@ -8,6 +8,7 @@
 //
 
 import SwiftUI
+import UIKit
 
 struct AIReflectionView: View {
     let feature: String
@@ -26,8 +27,16 @@ struct AIReflectionView: View {
     @State private var errorText: String?
     @State private var needsPlus = false
     @State private var showSignIn = false
+    @State private var copied = false
 
     private enum Phase { case idle, streaming, done }
+
+    /// The Copy affordance only makes sense once we have a real reflection to
+    /// copy — not while streaming, not on error, not on the Plus upsell, not on
+    /// the signed-out gate.
+    private var canCopy: Bool {
+        phase == .done && errorText == nil && !needsPlus && !text.isEmpty
+    }
 
     var body: some View {
         ScrollView {
@@ -51,15 +60,44 @@ struct AIReflectionView: View {
                 Text(title).font(LumenType.display(26)).foregroundStyle(t.ink)
             }
             Spacer()
-            Button { dismiss() } label: {
-                Image(systemName: "xmark")
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundStyle(t.inkSoft)
-                    .frame(width: 34, height: 34)
-                    .background(t.surface, in: .circle)
-                    .overlay(Circle().strokeBorder(t.rule, lineWidth: 0.5))
+            HStack(spacing: 8) {
+                if canCopy { copyButton }
+                Button { dismiss() } label: {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundStyle(t.inkSoft)
+                        .frame(width: 34, height: 34)
+                        .background(t.surface, in: .circle)
+                        .overlay(Circle().strokeBorder(t.rule, lineWidth: 0.5))
+                }
+                .buttonStyle(.plain)
             }
-            .buttonStyle(.plain)
+        }
+    }
+
+    /// Copies the streamed reflection text to the system pasteboard. Swaps to a
+    /// checkmark for ~2 seconds after the tap so the user has a clear "yes, that
+    /// landed" signal — paired with a success haptic.
+    private var copyButton: some View {
+        Button {
+            UIPasteboard.general.string = text
+            copied = true
+        } label: {
+            Image(systemName: copied ? "checkmark" : "doc.on.doc")
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(copied ? pal.accent : t.inkSoft)
+                .frame(width: 34, height: 34)
+                .background(t.surface, in: .circle)
+                .overlay(Circle().strokeBorder(t.rule, lineWidth: 0.5))
+                .animation(.easeInOut(duration: 0.2), value: copied)
+        }
+        .buttonStyle(.plain)
+        .sensoryFeedback(.success, trigger: copied) { _, now in now }
+        .accessibilityLabel(copied ? "Copied" : "Copy reflection")
+        .task(id: copied) {
+            guard copied else { return }
+            try? await Task.sleep(for: .seconds(2))
+            copied = false
         }
     }
 
