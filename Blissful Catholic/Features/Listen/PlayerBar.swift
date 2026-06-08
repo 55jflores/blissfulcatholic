@@ -41,7 +41,18 @@ struct PlayerBar: View {
                             .font(LumenType.mono(10))
                             .foregroundStyle(t.inkSoft)
                     }
-                    Spacer(minLength: 0)
+                    Spacer(minLength: 8)
+
+                    Button { player.cycleSpeed() } label: {
+                        Text(player.speedLabel)
+                            .font(LumenType.ui(12, weight: .semibold))
+                            .monospacedDigit()
+                            .foregroundStyle(pal.accent)
+                            .frame(minWidth: 42)
+                            .padding(.vertical, 7)
+                            .background(pal.accent.opacity(0.12), in: .capsule)
+                    }
+                    .buttonStyle(.plain)
                 }
 
                 Slider(value: scrubbing ? $scrubValue : .constant(player.fraction),

@@ -31,6 +31,14 @@ final class AudioPlayer {
     private(set) var currentSeconds: Double = 0
     private(set) var durationSeconds: Double = 0
 
+    /// Playback speed — persisted and applied across episodes (aficionados
+    /// expect their speed to stick).
+    private(set) var speed: Float = 1.0
+
+    /// The speeds the cycle button steps through.
+    static let speeds: [Float] = [1.0, 1.25, 1.5, 1.75, 2.0]
+    private static let speedKey = "player.speed"
+
     private let player = AVPlayer()
     private var timeObserver: Any?
 
@@ -42,6 +50,10 @@ final class AudioPlayer {
         // .playback = audible on silent AND eligible to continue in the
         // background (paired with the audio UIBackgroundModes entry).
         try? AVAudioSession.sharedInstance().setCategory(.playback, mode: .spokenAudio)
+
+        let saved = UserDefaults.standard.float(forKey: Self.speedKey)
+        speed = Self.speeds.contains(saved) ? saved : 1.0
+        player.defaultRate = speed   // the rate play() resumes at (iOS 16+)
 
         let interval = CMTime(seconds: 0.5, preferredTimescale: 600)
         timeObserver = player.addPeriodicTimeObserver(forInterval: interval, queue: .main) { [weak self] time in
@@ -60,6 +72,11 @@ final class AudioPlayer {
 
     func isCurrent(_ episode: Episode) -> Bool { current?.id == episode.id }
 
+    /// "1×", "1.5×", "1.25×" — for the cycle button.
+    var speedLabel: String {
+        speed == speed.rounded() ? "\(Int(speed))×" : "\(String(format: "%g", speed))×"
+    }
+
     // MARK: Transport
 
     /// Start a fresh episode (or resume it if it's already loaded). `showTitle`
@@ -74,11 +91,13 @@ final class AudioPlayer {
         currentSeconds = 0
         durationSeconds = 0
         try? AVAudioSession.sharedInstance().setActive(true)
-        player.replaceCurrentItem(with: AVPlayerItem(url: episode.audioURL))
+        let item = AVPlayerItem(url: episode.audioURL)
+        item.audioTimePitchAlgorithm = .timeDomain   // natural voice at higher speeds
+        player.replaceCurrentItem(with: item)
         player.play()
         isPlaying = true
+        applyRate()                                  // also refreshes now-playing
         loadArtworkIfNeeded(artworkURL)
-        updateNowPlayingInfo()
     }
 
     func togglePlayPause() {
@@ -102,12 +121,28 @@ final class AudioPlayer {
     private func resume() {
         player.play()
         isPlaying = true
-        updateNowPlayingInfo()
+        applyRate()
     }
 
     private func pause() {
         player.pause()
         isPlaying = false
+        updateNowPlayingInfo()
+    }
+
+    // MARK: Speed
+
+    /// Step to the next speed in `speeds`, wrapping back to 1×.
+    func cycleSpeed() {
+        let i = Self.speeds.firstIndex(of: speed) ?? 0
+        speed = Self.speeds[(i + 1) % Self.speeds.count]
+        UserDefaults.standard.set(speed, forKey: Self.speedKey)
+        applyRate()
+    }
+
+    private func applyRate() {
+        player.defaultRate = speed
+        if isPlaying { player.rate = speed }   // setting rate while playing changes speed live
         updateNowPlayingInfo()
     }
 
@@ -131,7 +166,7 @@ final class AudioPlayer {
             MPMediaItemPropertyArtist: showTitle,
             MPMediaItemPropertyPlaybackDuration: durationSeconds,
             MPNowPlayingInfoPropertyElapsedPlaybackTime: currentSeconds,
-            MPNowPlayingInfoPropertyPlaybackRate: isPlaying ? 1.0 : 0.0,
+            MPNowPlayingInfoPropertyPlaybackRate: isPlaying ? Double(speed) : 0.0,
         ]
         if let nowPlayingArtwork { info[MPMediaItemPropertyArtwork] = nowPlayingArtwork }
         MPNowPlayingInfoCenter.default().nowPlayingInfo = info
