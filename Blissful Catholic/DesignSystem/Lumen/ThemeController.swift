@@ -2,7 +2,7 @@
 //  ThemeController.swift
 //  Blissful Catholic
 //
-//  Holds the user's appearance choices: ground (Parchment/Cathedral/System) and
+//  Holds the user's appearance choices: ground (Parchment/Cathedral) and
 //  an optional manual liturgical-season override (otherwise auto from the
 //  calendar). Persisted like UserProfileStore. Injected at the root; the
 //  Profile → Appearance settings will drive it (replacing Lumen's Tweaks panel).
@@ -35,26 +35,16 @@ final class ThemeController {
 
     var palette: LiturgicalPalette { .for(season) }
 
-    /// What to hand SwiftUI's `.preferredColorScheme` (nil = follow system).
-    var preferredColorScheme: ColorScheme? {
+    /// What to hand SwiftUI's `.preferredColorScheme`.
+    var preferredColorScheme: ColorScheme {
         switch mode {
         case .parchment: return .light
         case .cathedral: return .dark
-        case .system:    return nil
         }
     }
 
-    /// The effective ground, resolving `.system` against the device appearance.
-    func effectiveScheme(system: ColorScheme) -> ColorScheme {
-        switch mode {
-        case .parchment: return .light
-        case .cathedral: return .dark
-        case .system:    return system
-        }
-    }
-
-    func tokens(system: ColorScheme) -> LumenTokens {
-        effectiveScheme(system: system) == .dark ? .cathedral : .parchment
+    var tokens: LumenTokens {
+        mode == .cathedral ? .cathedral : .parchment
     }
 
     private enum Keys {
@@ -68,13 +58,11 @@ final class ThemeController {
 /// reskinned screens.
 struct LumenThemeProvider<Content: View>: View {
     @Environment(ThemeController.self) private var theme
-    @Environment(\.colorScheme) private var systemScheme
     @ViewBuilder var content: Content
 
     var body: some View {
-        let tokens = theme.tokens(system: systemScheme)
         content
-            .environment(\.lumenTokens, tokens)
+            .environment(\.lumenTokens, theme.tokens)
             .environment(\.lumenPalette, theme.palette)
             .tint(theme.palette.accent)
             .preferredColorScheme(theme.preferredColorScheme)

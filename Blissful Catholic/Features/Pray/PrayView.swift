@@ -10,7 +10,7 @@
 
 import SwiftUI
 
-enum PrayRoute: Hashable { case rosary(resume: Bool) }
+enum PrayRoute: Hashable { case rosary(resume: Bool), listen }
 
 struct PrayView: View {
     @Environment(\.lumenTokens) private var t
@@ -36,6 +36,12 @@ struct PrayView: View {
                     .padding(.horizontal, 20)
                     .padding(.bottom, 18)
 
+                    // Podcast simulation — single curated show (docs/podcast-flow.md).
+                    NavigationLink(value: PrayRoute.listen) { listenRow }
+                        .buttonStyle(.plain)
+                        .padding(.horizontal, 20)
+                        .padding(.bottom, 18)
+
                     // TestFlight hiding pass: practice grid (5 of 6 tiles unwired),
                     // intentions card (hardcoded counts and candle states), and the
                     // library row (no destination) hidden until each gets a real backing.
@@ -47,6 +53,7 @@ struct PrayView: View {
             .navigationDestination(for: PrayRoute.self) { route in
                 switch route {
                 case .rosary(let resume): RosaryView(resume: resume)
+                case .listen: PodcastView()
                 }
             }
             .toolbar(.hidden, for: .navigationBar)
@@ -59,6 +66,36 @@ struct PrayView: View {
                 reason: "Sign in to prepare for Confession."
             )
         }
+    }
+
+    // MARK: Listen (podcast simulation entry)
+
+    private var listenRow: some View {
+        HStack(spacing: 14) {
+            Image(systemName: "headphones")
+                .font(.system(size: 16))
+                .foregroundStyle(pal.accent)
+                .frame(width: 38, height: 38)
+                .background(t.surface3, in: .circle)
+                .overlay(Circle().strokeBorder(t.rule, lineWidth: 0.5))
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Listen")
+                    .font(LumenType.display(17))
+                    .foregroundStyle(t.ink)
+                Text("Catholic podcasts · Fr. Mike Schmitz")
+                    .font(LumenType.ui(11))
+                    .foregroundStyle(t.inkSoft)
+            }
+            Spacer()
+            Image(systemName: "chevron.right")
+                .font(.system(size: 13))
+                .foregroundStyle(t.inkSoft)
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 14)
+        .background(t.surface2, in: .rect(cornerRadius: 14))
+        .overlay(RoundedRectangle(cornerRadius: 14).strokeBorder(t.rule, lineWidth: 0.5))
     }
 
     // MARK: Resume / start hero

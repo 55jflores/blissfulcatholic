@@ -4,6 +4,12 @@ Captured 2026-05-26 for implementation in **Phase 5** (StoreKit 2 + RevenueCat +
 This is the source of truth for pricing, the free/Plus split, and the entitlement
 gating used by both the iOS app (paywall) and the Next.js AI proxy.
 
+> **Companion doc:** [`monetization-strategy.md`](./monetization-strategy.md)
+> holds the Catholic theological framing, market landscape, realistic revenue
+> projections, layered model (subscription + donations + parish licenses), and
+> launch sequencing strategy. It proposes a lower price point ($3.99/mo,
+> $29.99/yr, $79.99 lifetime) than this doc — to be reconciled before Phase 5.
+
 ---
 
 ## 1. The value proposition (why anyone pays)

@@ -25,13 +25,11 @@ extension Color {
 enum ThemeMode: String, CaseIterable, Identifiable, Codable {
     case parchment   // light
     case cathedral   // dark
-    case system      // follow iOS appearance
     var id: String { rawValue }
     var displayName: String {
         switch self {
         case .parchment: return "Parchment"
         case .cathedral: return "Cathedral"
-        case .system:    return "System"
         }
     }
 }
