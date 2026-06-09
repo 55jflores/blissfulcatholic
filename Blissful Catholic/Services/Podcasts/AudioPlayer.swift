@@ -20,6 +20,12 @@ import AVFoundation
 import MediaPlayer
 import UIKit
 
+enum SleepMode: Equatable {
+    case off
+    case timed(until: Date)
+    case endOfEpisode
+}
+
 @MainActor
 @Observable
 final class AudioPlayer {
@@ -48,6 +54,12 @@ final class AudioPlayer {
 
     // Resume bookkeeping: throttle how often we persist the current position.
     private var lastSavedSecond: Double = 0
+
+    // Sleep timer (session-only; not persisted).
+    private(set) var sleepMode: SleepMode = .off
+    private(set) var sleepRemaining: TimeInterval = 0   // seconds left, for the countdown badge
+    private var sleepTask: Task<Void, Never>?
+    private static let sleepFadeSeconds: Double = 15    // gentle volume ramp at the end
 
     private init() {
         // .playback = audible on silent AND eligible to continue in the
@@ -162,6 +174,7 @@ final class AudioPlayer {
         isPlaying = false
         currentSeconds = durationSeconds
         lastSavedSecond = 0
+        if sleepMode == .endOfEpisode { cancelSleepTimer() }   // its job is done
         updateNowPlayingInfo()
     }
 
@@ -179,6 +192,68 @@ final class AudioPlayer {
         player.defaultRate = speed
         if isPlaying { player.rate = speed }   // setting rate while playing changes speed live
         updateNowPlayingInfo()
+    }
+
+    // MARK: Sleep timer
+
+    var sleepActive: Bool { sleepMode != .off }
+
+    /// Countdown badge text: "14:59" while timed, "End" for end-of-episode.
+    var sleepLabel: String {
+        switch sleepMode {
+        case .off:          return ""
+        case .endOfEpisode: return "End"
+        case .timed:
+            let s = Int(sleepRemaining.rounded())
+            return String(format: "%d:%02d", s / 60, s % 60)
+        }
+    }
+
+    func startSleepTimer(minutes: Int) {
+        player.volume = 1.0
+        sleepRemaining = Double(minutes) * 60
+        sleepMode = .timed(until: Date().addingTimeInterval(sleepRemaining))
+        cancelSleepLoop()
+        sleepTask = Task { [weak self] in
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(1))
+                self?.tickSleep()
+            }
+        }
+    }
+
+    /// Stop when the current episode ends (no countdown).
+    func sleepAtEndOfEpisode() {
+        cancelSleepLoop()
+        player.volume = 1.0
+        sleepRemaining = 0
+        sleepMode = .endOfEpisode
+    }
+
+    func cancelSleepTimer() {
+        cancelSleepLoop()
+        sleepMode = .off
+        sleepRemaining = 0
+        player.volume = 1.0
+    }
+
+    private func cancelSleepLoop() {
+        sleepTask?.cancel()
+        sleepTask = nil
+    }
+
+    private func tickSleep() {
+        guard case .timed(let until) = sleepMode else { return }
+        let remaining = until.timeIntervalSinceNow
+        if remaining <= 0 {
+            cancelSleepTimer()   // resets volume to 1.0 for the next play
+            pause()
+        } else {
+            sleepRemaining = remaining
+            // Gentle fade over the final stretch instead of a hard cut.
+            player.volume = remaining < Self.sleepFadeSeconds
+                ? Float(max(0, remaining / Self.sleepFadeSeconds)) : 1.0
+        }
     }
 
     private func tick(_ time: CMTime) {

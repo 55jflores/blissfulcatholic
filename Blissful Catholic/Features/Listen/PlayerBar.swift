@@ -43,6 +43,8 @@ struct PlayerBar: View {
                     }
                     Spacer(minLength: 8)
 
+                    sleepMenu
+
                     Button { player.cycleSpeed() } label: {
                         Text(player.speedLabel)
                             .font(LumenType.ui(12, weight: .semibold))
@@ -70,6 +72,38 @@ struct PlayerBar: View {
             // Seed the scrub handle from live progress the moment a drag starts.
             .onChange(of: scrubbing) { _, now in if now { scrubValue = player.fraction } }
         }
+    }
+
+    private var sleepMenu: some View {
+        Menu {
+            if player.sleepActive {
+                Button("Turn off sleep timer", systemImage: "moon.zzz", role: .destructive) {
+                    player.cancelSleepTimer()
+                }
+                Divider()
+            }
+            Button("5 minutes")  { player.startSleepTimer(minutes: 5) }
+            Button("15 minutes") { player.startSleepTimer(minutes: 15) }
+            Button("30 minutes") { player.startSleepTimer(minutes: 30) }
+            Button("45 minutes") { player.startSleepTimer(minutes: 45) }
+            Button("1 hour")     { player.startSleepTimer(minutes: 60) }
+            Button("End of episode") { player.sleepAtEndOfEpisode() }
+        } label: {
+            HStack(spacing: 4) {
+                Image(systemName: player.sleepActive ? "moon.fill" : "moon")
+                    .font(.system(size: 13))
+                if player.sleepActive, !player.sleepLabel.isEmpty {
+                    Text(player.sleepLabel)
+                        .font(LumenType.mono(10))
+                        .monospacedDigit()
+                }
+            }
+            .foregroundStyle(player.sleepActive ? pal.accent : t.inkSoft)
+            .padding(.vertical, 7)
+            .padding(.horizontal, 9)
+            .background(player.sleepActive ? pal.accent.opacity(0.12) : .clear, in: .capsule)
+        }
+        .buttonStyle(.plain)
     }
 
     private func timeLabel(_ seconds: Double) -> String {
