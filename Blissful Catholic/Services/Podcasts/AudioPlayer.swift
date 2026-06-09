@@ -46,6 +46,9 @@ final class AudioPlayer {
     private var artworkURL: URL?
     private var nowPlayingArtwork: MPMediaItemArtwork?
 
+    // Resume bookkeeping: throttle how often we persist the current position.
+    private var lastSavedSecond: Double = 0
+
     private init() {
         // .playback = audible on silent AND eligible to continue in the
         // background (paired with the audio UIBackgroundModes entry).
@@ -86,14 +89,25 @@ final class AudioPlayer {
             resume()
             return
         }
+        saveProgress()                               // persist where we were in the outgoing episode
+
         current = episode
         self.showTitle = showTitle
-        currentSeconds = 0
         durationSeconds = 0
+
+        // Resume mid-episode if we have a saved, unfinished position.
+        let saved = PodcastProgressStore.position(for: episode.id)
+        let resumeAt = (saved.map { !$0.isFinished && $0.seconds > 3 } ?? false) ? saved!.seconds : 0
+        currentSeconds = resumeAt
+        lastSavedSecond = resumeAt
+
         try? AVAudioSession.sharedInstance().setActive(true)
         let item = AVPlayerItem(url: episode.audioURL)
         item.audioTimePitchAlgorithm = .timeDomain   // natural voice at higher speeds
         player.replaceCurrentItem(with: item)
+        if resumeAt > 0 {
+            player.seek(to: CMTime(seconds: resumeAt, preferredTimescale: 600))
+        }
         player.play()
         isPlaying = true
         applyRate()                                  // also refreshes now-playing
@@ -127,6 +141,27 @@ final class AudioPlayer {
     private func pause() {
         player.pause()
         isPlaying = false
+        saveProgress()
+        updateNowPlayingInfo()
+    }
+
+    // MARK: Resume position
+
+    /// Persist the current spot for the current episode (no-op until we know the
+    /// duration / have made progress).
+    private func saveProgress() {
+        guard let current, durationSeconds > 0, currentSeconds > 1 else { return }
+        PodcastProgressStore.save(id: current.id, seconds: currentSeconds, duration: durationSeconds)
+        lastSavedSecond = currentSeconds
+    }
+
+    /// Episode reached the end — clear its resume pointer so it restarts fresh,
+    /// and reflect the finished state.
+    private func handlePlaybackEnded() {
+        if let current { PodcastProgressStore.clear(id: current.id) }
+        isPlaying = false
+        currentSeconds = durationSeconds
+        lastSavedSecond = 0
         updateNowPlayingInfo()
     }
 
@@ -151,6 +186,10 @@ final class AudioPlayer {
         if let d = player.currentItem?.duration.seconds, d.isFinite, d != durationSeconds {
             durationSeconds = d
             updateNowPlayingInfo()   // duration just became known
+        }
+        // Persist roughly every 5s of playback so a crash/kill loses little.
+        if isPlaying, abs(currentSeconds - lastSavedSecond) >= 5 {
+            saveProgress()
         }
     }
 
@@ -245,6 +284,13 @@ final class AudioPlayer {
                   let raw = info[AVAudioSessionRouteChangeReasonKey] as? UInt,
                   let reason = AVAudioSession.RouteChangeReason(rawValue: raw) else { return }
             Task { @MainActor in self?.handleRouteChange(reason: reason) }
+        }
+        nc.addObserver(forName: AVPlayerItem.didPlayToEndTimeNotification, object: nil, queue: .main) { [weak self] _ in
+            Task { @MainActor in self?.handlePlaybackEnded() }
+        }
+        // Capture the latest position when the app is backgrounded or killed.
+        nc.addObserver(forName: UIApplication.willResignActiveNotification, object: nil, queue: .main) { [weak self] _ in
+            Task { @MainActor in self?.saveProgress() }
         }
     }
 

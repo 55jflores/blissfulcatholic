@@ -143,16 +143,30 @@ struct PodcastView: View {
                     .background(t.surface3, in: .circle)
                     .overlay(Circle().strokeBorder(t.rule, lineWidth: 0.5))
 
-                VStack(alignment: .leading, spacing: 3) {
+                VStack(alignment: .leading, spacing: 5) {
                     Text(episode.title)
                         .font(LumenType.serif(15))
                         .foregroundStyle(t.ink)
                         .lineLimit(2)
                         .multilineTextAlignment(.leading)
-                    Text(metaLine(episode))
+
+                    let progress = rowProgress(episode)
+                    Text(metaLine(episode, progress: progress))
                         .font(LumenType.ui(10))
                         .tracking(0.3)
-                        .foregroundStyle(t.inkSoft)
+                        .foregroundStyle(progress == nil ? t.inkSoft : pal.accent)
+
+                    if let progress {
+                        GeometryReader { geo in
+                            ZStack(alignment: .leading) {
+                                Capsule().fill(t.surface3).frame(height: 3)
+                                Capsule().fill(pal.accent)
+                                    .frame(width: geo.size.width * progress.fraction, height: 3)
+                            }
+                        }
+                        .frame(height: 3)
+                        .padding(.top, 1)
+                    }
                 }
                 Spacer(minLength: 0)
             }
@@ -170,10 +184,25 @@ struct PodcastView: View {
         return "play.fill"
     }
 
-    private func metaLine(_ episode: Episode) -> String {
-        [episode.durationLabel, episode.dateLabel]
-            .filter { !$0.isEmpty }
-            .joined(separator: " · ")
+    private func metaLine(_ episode: Episode, progress: (fraction: Double, remaining: Double)?) -> String {
+        var parts = [episode.durationLabel, episode.dateLabel].filter { !$0.isEmpty }
+        if let progress {
+            let mins = Int((progress.remaining / 60).rounded(.up))
+            parts.append(mins <= 0 ? "almost done" : "\(mins) min left")
+        }
+        return parts.joined(separator: " · ")
+    }
+
+    /// The resume state to show on a row: live position for the playing episode,
+    /// otherwise the saved pointer. Nil when there's nothing to resume.
+    private func rowProgress(_ episode: Episode) -> (fraction: Double, remaining: Double)? {
+        if player.isCurrent(episode), player.durationSeconds > 0 {
+            return (player.fraction, max(0, player.durationSeconds - player.currentSeconds))
+        }
+        if let p = PodcastProgressStore.position(for: episode.id), !p.isFinished, p.fraction > 0.01 {
+            return (p.fraction, p.secondsRemaining)
+        }
+        return nil
     }
 }
 
