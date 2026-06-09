@@ -303,42 +303,42 @@ final class AudioPlayer {
     private func setupRemoteCommands() {
         let c = MPRemoteCommandCenter.shared()
 
-        c.playCommand.addTarget { [weak self] _ in
-            Task { @MainActor in self?.resume() }
+        c.playCommand.addTarget { _ in
+            Task { @MainActor [weak self] in self?.resume() }
             return .success
         }
-        c.pauseCommand.addTarget { [weak self] _ in
-            Task { @MainActor in self?.pause() }
+        c.pauseCommand.addTarget { _ in
+            Task { @MainActor [weak self] in self?.pause() }
             return .success
         }
-        c.togglePlayPauseCommand.addTarget { [weak self] _ in
-            Task { @MainActor in self?.togglePlayPause() }
+        c.togglePlayPauseCommand.addTarget { _ in
+            Task { @MainActor [weak self] in self?.togglePlayPause() }
             return .success
         }
 
         c.skipForwardCommand.preferredIntervals = [30]
-        c.skipForwardCommand.addTarget { [weak self] event in
+        c.skipForwardCommand.addTarget { event in
             let by = (event as? MPSkipIntervalCommandEvent)?.interval ?? 30
-            Task { @MainActor in
+            Task { @MainActor [weak self] in
                 guard let self else { return }
                 self.seek(toSeconds: self.currentSeconds + by)
             }
             return .success
         }
         c.skipBackwardCommand.preferredIntervals = [15]
-        c.skipBackwardCommand.addTarget { [weak self] event in
+        c.skipBackwardCommand.addTarget { event in
             let by = (event as? MPSkipIntervalCommandEvent)?.interval ?? 15
-            Task { @MainActor in
+            Task { @MainActor [weak self] in
                 guard let self else { return }
                 self.seek(toSeconds: self.currentSeconds - by)
             }
             return .success
         }
 
-        c.changePlaybackPositionCommand.addTarget { [weak self] event in
+        c.changePlaybackPositionCommand.addTarget { event in
             guard let e = event as? MPChangePlaybackPositionCommandEvent else { return .commandFailed }
             let pos = e.positionTime
-            Task { @MainActor in self?.seek(toSeconds: pos) }
+            Task { @MainActor [weak self] in self?.seek(toSeconds: pos) }
             return .success
         }
     }
@@ -347,25 +347,25 @@ final class AudioPlayer {
 
     private func setupNotifications() {
         let nc = NotificationCenter.default
-        nc.addObserver(forName: AVAudioSession.interruptionNotification, object: nil, queue: .main) { [weak self] note in
+        nc.addObserver(forName: AVAudioSession.interruptionNotification, object: nil, queue: .main) { note in
             guard let info = note.userInfo,
                   let raw = info[AVAudioSessionInterruptionTypeKey] as? UInt,
                   let type = AVAudioSession.InterruptionType(rawValue: raw) else { return }
             let optionsRaw = info[AVAudioSessionInterruptionOptionKey] as? UInt
-            Task { @MainActor in self?.handleInterruption(type: type, optionsRaw: optionsRaw) }
+            Task { @MainActor [weak self] in self?.handleInterruption(type: type, optionsRaw: optionsRaw) }
         }
-        nc.addObserver(forName: AVAudioSession.routeChangeNotification, object: nil, queue: .main) { [weak self] note in
+        nc.addObserver(forName: AVAudioSession.routeChangeNotification, object: nil, queue: .main) { note in
             guard let info = note.userInfo,
                   let raw = info[AVAudioSessionRouteChangeReasonKey] as? UInt,
                   let reason = AVAudioSession.RouteChangeReason(rawValue: raw) else { return }
-            Task { @MainActor in self?.handleRouteChange(reason: reason) }
+            Task { @MainActor [weak self] in self?.handleRouteChange(reason: reason) }
         }
-        nc.addObserver(forName: AVPlayerItem.didPlayToEndTimeNotification, object: nil, queue: .main) { [weak self] _ in
-            Task { @MainActor in self?.handlePlaybackEnded() }
+        nc.addObserver(forName: AVPlayerItem.didPlayToEndTimeNotification, object: nil, queue: .main) { _ in
+            Task { @MainActor [weak self] in self?.handlePlaybackEnded() }
         }
         // Capture the latest position when the app is backgrounded or killed.
-        nc.addObserver(forName: UIApplication.willResignActiveNotification, object: nil, queue: .main) { [weak self] _ in
-            Task { @MainActor in self?.saveProgress() }
+        nc.addObserver(forName: UIApplication.willResignActiveNotification, object: nil, queue: .main) { _ in
+            Task { @MainActor [weak self] in self?.saveProgress() }
         }
     }
 
