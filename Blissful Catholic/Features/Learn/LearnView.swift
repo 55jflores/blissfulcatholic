@@ -30,23 +30,72 @@ struct LearnView: View {
     ]
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 0) {
-                LumenScreenHeader(eyebrow: "Learn", title: "Learn")
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    LumenScreenHeader(eyebrow: "Learn", title: "Learn")
 
-                askCatechism
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, 20)
+                    askCatechism
+                        .padding(.horizontal, 20)
+                        .padding(.bottom, 16)
 
-                // TestFlight hiding pass: featured course ("Theology of the Body"),
-                // Continue paths (3 hardcoded progress entries), and Library shelves
-                // (5 hardcoded counts with unwired chevrons) hidden until each has a
-                // real reader / course system / search behind it.
+                    NavigationLink(value: BibleRoute.books) { readBibleEntry }
+                        .buttonStyle(.plain)
+                        .padding(.horizontal, 20)
+                        .padding(.bottom, 20)
+
+                    // TestFlight hiding pass: featured course ("Theology of the Body"),
+                    // Continue paths (3 hardcoded progress entries), and Library shelves
+                    // (5 hardcoded counts with unwired chevrons) hidden until each has a
+                    // real reader / course system / search behind it.
+                }
+                .padding(.bottom, 120)
             }
-            .padding(.bottom, 120)
+            .background(t.bg.ignoresSafeArea())
+            .navigationDestination(for: BibleRoute.self) { route in
+                switch route {
+                case .books:
+                    BibleBooksView()
+                case .chapters(let book):
+                    BibleChaptersView(book: book)
+                case .reader(let book, let chapter):
+                    BibleChapterReaderView(book: book, chapter: chapter)
+                }
+            }
+            .toolbar(.hidden, for: .navigationBar)
         }
-        .background(t.bg.ignoresSafeArea())
         .sheet(isPresented: $showCatechism) { CatechismView() }
+    }
+
+    // MARK: Read the Bible (entry)
+
+    private var readBibleEntry: some View {
+        HStack(spacing: 14) {
+            Image(systemName: "book.closed")
+                .font(.system(size: 16))
+                .foregroundStyle(pal.accent)
+                .frame(width: 40, height: 40)
+                .background(t.surface3, in: .circle)
+                .overlay(Circle().strokeBorder(t.rule, lineWidth: 0.5))
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Read the Bible")
+                    .font(LumenType.display(18))
+                    .foregroundStyle(t.ink)
+                Text("73 books · tap a verse to ask what it means")
+                    .font(LumenType.ui(11))
+                    .foregroundStyle(t.inkSoft)
+            }
+            Spacer(minLength: 0)
+            Image(systemName: "chevron.right")
+                .font(.system(size: 13))
+                .foregroundStyle(t.inkSoft)
+        }
+        .padding(.horizontal, 18)
+        .padding(.vertical, 16)
+        .background(t.surface, in: .rect(cornerRadius: 16))
+        .overlay(RoundedRectangle(cornerRadius: 16).strokeBorder(t.rule, lineWidth: 0.5))
+        .lumenShadow(t)
     }
 
     // MARK: Ask the Catechism (AI)
