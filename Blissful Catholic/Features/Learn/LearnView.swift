@@ -14,6 +14,8 @@ struct LearnView: View {
     @Environment(\.lumenPalette) private var pal
 
     @State private var showCatechism = false
+    @State private var path: [BibleRoute] = []
+    @State private var lastRead: BibleReadingProgress?
 
     private let paths: [(title: String, meta: String, pct: Double, hue: Double, cover: String)] = [
         ("The Catechism in 90 Days", "Day 23 · CCC §301", 0.26, 30, "CCC"),
@@ -30,7 +32,7 @@ struct LearnView: View {
     ]
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $path) {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
                     LumenScreenHeader(eyebrow: "Learn", title: "Learn")
@@ -38,6 +40,12 @@ struct LearnView: View {
                     askCatechism
                         .padding(.horizontal, 20)
                         .padding(.bottom, 16)
+
+                    if let lastRead {
+                        continueReadingCard(lastRead)
+                            .padding(.horizontal, 20)
+                            .padding(.bottom, 14)
+                    }
 
                     NavigationLink(value: BibleRoute.books) { readBibleEntry }
                         .buttonStyle(.plain)
@@ -64,7 +72,45 @@ struct LearnView: View {
             }
             .toolbar(.hidden, for: .navigationBar)
         }
+        // Refresh the Continue pointer on first load and whenever we return from
+        // the reader (the navigation path changing back to root).
+        .onAppear { lastRead = BibleReadingStore.load() }
+        .onChange(of: path) { _, _ in lastRead = BibleReadingStore.load() }
         .sheet(isPresented: $showCatechism) { CatechismView() }
+    }
+
+    // MARK: Continue reading (resume the last chapter)
+
+    private func continueReadingCard(_ progress: BibleReadingProgress) -> some View {
+        Button {
+            path = [.reader(book: progress.bookRef, chapter: progress.chapter)]
+        } label: {
+            HStack(spacing: 14) {
+                Image(systemName: "book.closed.fill")
+                    .font(.system(size: 16))
+                    .foregroundStyle(.white)
+                    .frame(width: 40, height: 40)
+                    .background(.white.opacity(0.2), in: .circle)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Eyebrow(text: "Continue reading", color: .white.opacity(0.8))
+                    Text("\(progress.bookName) \(progress.chapter)")
+                        .font(LumenType.display(20))
+                        .foregroundStyle(.white)
+                }
+                Spacer(minLength: 0)
+                Image(systemName: "arrow.right")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(.white.opacity(0.9))
+            }
+            .padding(16)
+            .background(
+                LinearGradient(colors: [pal.accent, pal.accentSoft],
+                               startPoint: .topLeading, endPoint: .bottomTrailing),
+                in: .rect(cornerRadius: 16))
+            .shadow(color: pal.accent.opacity(0.3), radius: 10, y: 6)
+        }
+        .buttonStyle(.plain)
     }
 
     // MARK: Read the Bible (entry)

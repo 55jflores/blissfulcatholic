@@ -22,6 +22,12 @@ struct BibleChapterReaderView: View {
     @State private var selected: Set<Int> = []
     @State private var showExplain = false
 
+    // Reader text size — persisted across chapters and launches.
+    @AppStorage("bible.fontSize") private var fontSize: Double = 17
+    private let minFont: Double = 14
+    private let maxFont: Double = 30
+    private let fontStep: Double = 2
+
     init(book: BibleBookRef, chapter: Int) {
         self.book = book
         _chapter = State(initialValue: chapter)
@@ -32,7 +38,16 @@ struct BibleChapterReaderView: View {
             t.bg.ignoresSafeArea()
 
             VStack(spacing: 0) {
-                LumenDeepHeader(eyebrow: book.name, title: "Chapter \(chapter)") { dismiss() }
+                LumenDeepHeader(eyebrow: book.name, title: "Chapter \(chapter)", onBack: { dismiss() }) {
+                    HStack(spacing: 4) {
+                        sizeButton("textformat.size.smaller", disabled: fontSize <= minFont) {
+                            adjustFont(by: -fontStep)
+                        }
+                        sizeButton("textformat.size.larger", disabled: fontSize >= maxFont) {
+                            adjustFont(by: fontStep)
+                        }
+                    }
+                }
 
                 ScrollViewReader { proxy in
                     ScrollView {
@@ -77,13 +92,13 @@ struct BibleChapterReaderView: View {
         return Button { toggle(verse.verse) } label: {
             HStack(alignment: .firstTextBaseline, spacing: 8) {
                 Text("\(verse.verse)")
-                    .font(LumenType.ui(10, weight: .semibold))
+                    .font(LumenType.ui(max(10, fontSize * 0.58), weight: .semibold))
                     .foregroundStyle(pal.accent)
                     .frame(minWidth: 18, alignment: .trailing)
                 Text(verse.text)
-                    .font(LumenType.serif(17))
+                    .font(LumenType.serif(fontSize))
                     .foregroundStyle(t.ink)
-                    .lineSpacing(6)
+                    .lineSpacing(fontSize * 0.35)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .multilineTextAlignment(.leading)
             }
@@ -173,7 +188,24 @@ struct BibleChapterReaderView: View {
         .buttonStyle(.plain)
     }
 
+    private func sizeButton(_ symbol: String, disabled: Bool,
+                            action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: symbol)
+                .font(.system(size: 16))
+                .foregroundStyle(disabled ? t.inkSoft.opacity(0.4) : t.inkMid)
+                .frame(width: 34, height: 36)
+                .contentShape(.rect)
+        }
+        .buttonStyle(.plain)
+        .disabled(disabled)
+    }
+
     // MARK: Logic
+
+    private func adjustFont(by delta: Double) {
+        fontSize = min(maxFont, max(minFont, fontSize + delta))
+    }
 
     private func toggle(_ verse: Int) {
         if selected.contains(verse) { selected.remove(verse) } else { selected.insert(verse) }
@@ -186,6 +218,7 @@ struct BibleChapterReaderView: View {
 
     private func load() async {
         verses = await BibleService.shared.chapter(book: book.code, chapter: chapter)
+        BibleReadingStore.save(book: book, chapter: chapter)   // remember for Continue Reading
     }
 
     /// "John 3:16", "John 3:16–18", or "John 3:16, 18" — collapses runs.
