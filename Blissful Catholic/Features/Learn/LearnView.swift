@@ -83,7 +83,11 @@ struct LearnView: View {
 
     private func continueReadingCard(_ progress: BibleReadingProgress) -> some View {
         Button {
-            path = [.reader(book: progress.bookRef, chapter: progress.chapter)]
+            // Push the full books → chapters → reader stack so back-navigation
+            // from the resumed chapter lands on the chapter grid, not Learn.
+            let book = progress.bookRef
+            path = [.books, .chapters(book: book),
+                    .reader(book: book, chapter: progress.chapter)]
         } label: {
             HStack(spacing: 14) {
                 Image(systemName: "book.closed.fill")

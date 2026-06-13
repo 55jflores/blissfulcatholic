@@ -17,11 +17,13 @@ import CryptoKit
 enum AuthError: LocalizedError {
     case noPresenter
     case missingIDToken
+    case deleteFailed
 
     var errorDescription: String? {
         switch self {
         case .noPresenter: return "Couldn't open the sign-in screen. Please try again."
         case .missingIDToken: return "Google didn't return a valid token. Please try again."
+        case .deleteFailed: return "Couldn't delete your account. Please check your connection and try again."
         }
     }
 }
@@ -155,6 +157,28 @@ final class AuthStore {
         try? await client.auth.signOut()
         GIDSignIn.sharedInstance.signOut()
         session = nil
+    }
+
+    /// Permanently deletes the account via the backend (DELETE /api/account —
+    /// the client can't delete its own auth.users row, so the service-role key
+    /// does it server-side; the schema cascades the rest). On-device SwiftData
+    /// (journal, sessions, intentions) is deliberately untouched: the app is
+    /// local-first and that data exists independent of any account.
+    func deleteAccount() async throws {
+        guard let token = await accessToken() else { throw AuthError.deleteFailed }
+
+        var request = URLRequest(url: SupabaseConfig.apiBaseURL.appending(path: "api/account"))
+        request.httpMethod = "DELETE"
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+
+        let (_, response) = try await URLSession.shared.data(for: request)
+        guard (response as? HTTPURLResponse)?.statusCode == 200 else {
+            throw AuthError.deleteFailed
+        }
+
+        // The server-side user is gone; clear the local session and Keychain.
+        await signOut()
+        authNotice = "Your account has been deleted."
     }
 
     // MARK: Presentation

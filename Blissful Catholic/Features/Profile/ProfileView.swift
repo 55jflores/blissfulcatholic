@@ -14,6 +14,7 @@
 
 import SwiftUI
 import SwiftData
+import UserNotifications
 
 struct ProfileView: View {
     @Environment(\.lumenTokens) private var t
@@ -28,6 +29,15 @@ struct ProfileView: View {
 
     @State private var isEditing = false
     @State private var showSignIn = false
+
+    // Account deletion flow (App Store 5.1.1(v) requires in-app deletion).
+    @State private var showDeleteConfirm = false
+    @State private var isDeletingAccount = false
+    @State private var deleteError: String?
+
+    // Reminders (daily Gospel verse — see docs/notification-gospel-verse.md).
+    @State private var reminders = ReminderSettingsStore.load()
+    @State private var showSettingsAlert = false
 
     // Streak data, derived from real activity.
     private var activeDays: Set<Date> {
@@ -53,6 +63,7 @@ struct ProfileView: View {
                     streakGarden
                     statsRow
                     accountSection
+                    remindersSection
                     appearanceSection
                     #if DEBUG
                     devReset
@@ -65,6 +76,119 @@ struct ProfileView: View {
         .background(t.bg.ignoresSafeArea())
         .sheet(isPresented: $isEditing) { ProfileEditView() }
         .sheet(isPresented: $showSignIn) { SignInView() }
+        .confirmationDialog("Delete your account?",
+                            isPresented: $showDeleteConfirm,
+                            titleVisibility: .visible) {
+            Button("Delete account", role: .destructive) {
+                Task { await deleteAccount() }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This permanently deletes your account and everything stored on our servers. It can't be undone. Your journal and prayer history stay on this device.")
+        }
+        .alert("Couldn't delete account",
+               isPresented: Binding(
+                   get: { deleteError != nil },
+                   set: { if !$0 { deleteError = nil } }
+               )) {
+            Button("OK", role: .cancel) { deleteError = nil }
+        } message: {
+            Text(deleteError ?? "")
+        }
+        .alert("Notifications are off", isPresented: $showSettingsAlert) {
+            Button("Open Settings") {
+                if let url = URL(string: UIApplication.openSettingsURLString) {
+                    UIApplication.shared.open(url)
+                }
+            }
+            Button("Not now", role: .cancel) {}
+        } message: {
+            Text("Turn on notifications for Blissful Catholic in Settings to receive the daily Gospel reminder.")
+        }
+    }
+
+    private func deleteAccount() async {
+        isDeletingAccount = true
+        defer { isDeletingAccount = false }
+        do {
+            try await auth.deleteAccount()
+        } catch {
+            deleteError = error.localizedDescription
+        }
+    }
+
+    // MARK: Reminders
+
+    private var remindersSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Eyebrow(text: "Reminders", color: t.inkSoft).padding(.horizontal, 4)
+            LumenCard(padding: 0) {
+                VStack(spacing: 0) {
+                    Toggle(isOn: gospelToggle) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Morning Gospel").font(LumenType.display(16)).foregroundStyle(t.ink)
+                            Text("The day's Gospel verse, each morning")
+                                .font(LumenType.serif(12).italic()).foregroundStyle(t.inkMid)
+                        }
+                    }
+                    .tint(pal.accent)
+                    .padding(.horizontal, 18).padding(.vertical, 14)
+
+                    if reminders.gospelEnabled {
+                        Rectangle().fill(t.ruleSoft).frame(height: 0.5).padding(.leading, 18)
+                        DatePicker(selection: gospelTime, displayedComponents: .hourAndMinute) {
+                            Text("Time").font(LumenType.serif(14)).foregroundStyle(t.ink)
+                        }
+                        .tint(pal.accent)
+                        .padding(.horizontal, 18).padding(.vertical, 8)
+                    }
+                }
+            }
+            Text("Reminders are created on your device. Nothing is sent to a server.")
+                .font(LumenType.ui(11)).foregroundStyle(t.inkSoft)
+                .padding(.horizontal, 4)
+        }
+    }
+
+    private var gospelToggle: Binding<Bool> {
+        Binding(get: { reminders.gospelEnabled },
+                set: { newValue in Task { await setGospelEnabled(newValue) } })
+    }
+
+    private var gospelTime: Binding<Date> {
+        Binding(
+            get: {
+                Calendar.current.date(bySettingHour: reminders.gospelHour,
+                                      minute: reminders.gospelMinute, second: 0, of: Date()) ?? Date()
+            },
+            set: { date in
+                let c = Calendar.current.dateComponents([.hour, .minute], from: date)
+                reminders.gospelHour = c.hour ?? 8
+                reminders.gospelMinute = c.minute ?? 0
+                ReminderSettingsStore.save(reminders)
+                Task { await NotificationService.shared.refresh(settings: reminders) }
+            })
+    }
+
+    /// Enabling requests permission first; a previously-denied user is routed to
+    /// Settings (we can't re-prompt) and the toggle stays off.
+    private func setGospelEnabled(_ on: Bool) async {
+        if on {
+            await NotificationService.shared.refreshAuthorizationStatus()
+            switch NotificationService.shared.authorizationStatus {
+            case .notDetermined:
+                let granted = await NotificationService.shared.requestAuthorization()
+                guard granted else { return }
+            case .denied:
+                showSettingsAlert = true
+                return
+            default:
+                break
+            }
+        }
+        reminders.gospelEnabled = on
+        ReminderSettingsStore.save(reminders)
+        await NotificationService.shared.refresh(settings: reminders)
     }
 
     // MARK: Account
@@ -74,22 +198,46 @@ struct ProfileView: View {
             Eyebrow(text: "Account", color: t.inkSoft).padding(.horizontal, 4)
             LumenCard(padding: 0) {
                 if let email = auth.email {
-                    HStack {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Signed in").font(LumenType.display(16)).foregroundStyle(t.ink)
-                            Text(email).font(LumenType.serif(12).italic()).foregroundStyle(t.inkMid)
+                    VStack(spacing: 0) {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Signed in").font(LumenType.display(16)).foregroundStyle(t.ink)
+                                Text(email).font(LumenType.serif(12).italic()).foregroundStyle(t.inkMid)
+                            }
+                            Spacer()
+                            Button { Task { await auth.signOut() } } label: {
+                                Text("Sign out")
+                                    .font(LumenType.ui(11, weight: .medium))
+                                    .foregroundStyle(pal.accent)
+                                    .padding(.horizontal, 12).padding(.vertical, 6)
+                                    .overlay(Capsule().strokeBorder(pal.accent, lineWidth: 0.5))
+                            }
+                            .buttonStyle(.plain)
                         }
-                        Spacer()
-                        Button { Task { await auth.signOut() } } label: {
-                            Text("Sign out")
-                                .font(LumenType.ui(11, weight: .medium))
-                                .foregroundStyle(pal.accent)
-                                .padding(.horizontal, 12).padding(.vertical, 6)
-                                .overlay(Capsule().strokeBorder(pal.accent, lineWidth: 0.5))
+                        .padding(.horizontal, 18).padding(.vertical, 14)
+
+                        Rectangle().fill(t.ruleSoft).frame(height: 0.5).padding(.leading, 18)
+
+                        Button(role: .destructive) { showDeleteConfirm = true } label: {
+                            HStack(spacing: 8) {
+                                if isDeletingAccount {
+                                    ProgressView().controlSize(.small)
+                                    Text("Deleting account…")
+                                        .font(LumenType.serif(13))
+                                        .foregroundStyle(t.inkMid)
+                                } else {
+                                    Text("Delete account")
+                                        .font(LumenType.serif(13))
+                                        .foregroundStyle(.red.opacity(0.8))
+                                }
+                                Spacer()
+                            }
+                            .padding(.horizontal, 18).padding(.vertical, 12)
+                            .contentShape(.rect)
                         }
                         .buttonStyle(.plain)
+                        .disabled(isDeletingAccount)
                     }
-                    .padding(.horizontal, 18).padding(.vertical, 14)
                 } else {
                     Button { showSignIn = true } label: {
                         HStack {

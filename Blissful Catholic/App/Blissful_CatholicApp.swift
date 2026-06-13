@@ -17,6 +17,8 @@ struct Blissful_CatholicApp: App {
     @State private var profile: UserProfileStore
     @State private var theme = ThemeController()
     @State private var auth = AuthStore()
+    @State private var notificationRouter: NotificationRouter
+    @Environment(\.scenePhase) private var scenePhase
 
     init() {
         let container: ModelContainer
@@ -27,6 +29,12 @@ struct Blissful_CatholicApp: App {
         }
         modelContainer = container
         _profile = State(initialValue: UserProfileStore(context: container.mainContext))
+
+        // Wire the notification deep-link router into the service before any UI
+        // appears, so a cold-launch notification tap routes correctly.
+        let router = NotificationRouter()
+        _notificationRouter = State(initialValue: router)
+        NotificationService.shared.router = router
     }
 
     var body: some Scene {
@@ -37,6 +45,18 @@ struct Blissful_CatholicApp: App {
             .environment(profile)
             .environment(theme)
             .environment(auth)
+            .environment(notificationRouter)
+            .task {
+                await NotificationService.shared.refreshAuthorizationStatus()
+                await NotificationService.shared.refresh(settings: ReminderSettingsStore.load())
+            }
+            .onChange(of: scenePhase) { _, newPhase in
+                // Re-roll the rolling notification window when leaving the app —
+                // the queue is freshest exactly when it's about to be needed.
+                if newPhase == .background {
+                    Task { await NotificationService.shared.refresh(settings: ReminderSettingsStore.load()) }
+                }
+            }
             .onOpenURL { url in
                 if GIDSignIn.sharedInstance.handle(url) { return }
                 Task { await auth.handle(url: url) }

@@ -13,6 +13,7 @@ import SwiftData
 struct MainTabView: View {
     @State private var selection: AppTab = .daily
     @Environment(\.lumenTokens) private var t
+    @Environment(NotificationRouter.self) private var router
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -22,6 +23,14 @@ struct MainTabView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
 
             LumenTabBar(selection: $selection)
+        }
+        .onChange(of: router.route) { _, newRoute in
+            // A tapped notification asked us to navigate. v1: Daily only.
+            guard let newRoute else { return }
+            switch newRoute {
+            case .daily: selection = .daily
+            }
+            router.route = nil
         }
     }
 
@@ -41,6 +50,7 @@ struct MainTabView: View {
     MainTabView()
         .environment(UserProfileStore.preview)
         .environment(ThemeController())
+        .environment(NotificationRouter())
         .environment(\.lumenTokens, .parchment)
         .environment(\.lumenPalette, .for(.easter))
         .modelContainer(PreviewSupport.container)
