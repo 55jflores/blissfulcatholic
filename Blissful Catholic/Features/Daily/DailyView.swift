@@ -160,7 +160,7 @@ struct DailyView: View {
     private var verse: some View {
         VStack(alignment: .leading, spacing: 10) {
             if let hero = verseHero {
-                Text("\u{201C}\(hero.text)\u{201D}")
+                Text(hero.text.quotedForDisplay)
                     .font(LumenType.display(26, weight: .medium).italic())
                     .foregroundStyle(t.ink)
                     .lineSpacing(4)

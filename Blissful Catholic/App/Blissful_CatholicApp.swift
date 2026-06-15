@@ -49,16 +49,27 @@ struct Blissful_CatholicApp: App {
             .task {
                 await NotificationService.shared.refreshAuthorizationStatus()
                 await NotificationService.shared.refresh(settings: ReminderSettingsStore.load())
+                await WidgetSnapshotWriter.update()
             }
             .onChange(of: scenePhase) { _, newPhase in
-                // Re-roll the rolling notification window when leaving the app —
-                // the queue is freshest exactly when it's about to be needed.
+                // Re-roll the rolling notification window and refresh the widget
+                // snapshot when leaving the app — both freshest exactly when
+                // they're about to be needed.
                 if newPhase == .background {
-                    Task { await NotificationService.shared.refresh(settings: ReminderSettingsStore.load()) }
+                    Task {
+                        await NotificationService.shared.refresh(settings: ReminderSettingsStore.load())
+                        await WidgetSnapshotWriter.update()
+                    }
                 }
             }
             .onOpenURL { url in
                 if GIDSignIn.sharedInstance.handle(url) { return }
+                // Widget deep link → select the Daily tab (reuses the router the
+                // notification tap path already uses).
+                if url.scheme == "blissfulcatholic", url.host == "daily" {
+                    notificationRouter.route = .daily
+                    return
+                }
                 Task { await auth.handle(url: url) }
             }
             .alert(

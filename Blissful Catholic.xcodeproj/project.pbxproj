@@ -7,11 +7,21 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		8B33011B2FDDF92A00B5D8A3 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8B33011A2FDDF92A00B5D8A3 /* WidgetKit.framework */; };
+		8B33011D2FDDF92A00B5D8A3 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8B33011C2FDDF92A00B5D8A3 /* SwiftUI.framework */; };
+		8B33012C2FDDF92A00B5D8A3 /* BlissfulWidgetsExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 8B3301182FDDF92A00B5D8A3 /* BlissfulWidgetsExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		8B3905D12FC7F96B00C98C96 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = 8B3905D02FC7F96B00C98C96 /* Supabase */; };
 		8B3905D42FC7FCEB00C98C96 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = 8B3905D32FC7FCEB00C98C96 /* GoogleSignIn */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		8B33012A2FDDF92A00B5D8A3 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 8B3C66972FC23C840093FF64 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 8B3301172FDDF92A00B5D8A3;
+			remoteInfo = BlissfulWidgetsExtension;
+		};
 		8B3C66AF2FC23C850093FF64 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 8B3C66972FC23C840093FF64 /* Project object */;
@@ -28,15 +38,61 @@
 		};
 /* End PBXContainerItemProxy section */
 
+/* Begin PBXCopyFilesBuildPhase section */
+		8B33012D2FDDF92A00B5D8A3 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				8B33012C2FDDF92A00B5D8A3 /* BlissfulWidgetsExtension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
+		8B3301182FDDF92A00B5D8A3 /* BlissfulWidgetsExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = BlissfulWidgetsExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		8B33011A2FDDF92A00B5D8A3 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
+		8B33011C2FDDF92A00B5D8A3 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
+		8B3301322FDDFAC100B5D8A3 /* BlissfulWidgetsExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = BlissfulWidgetsExtension.entitlements; sourceTree = "<group>"; };
 		8B3C669F2FC23C840093FF64 /* Blissful Catholic.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Blissful Catholic.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		8B3C66AE2FC23C850093FF64 /* Blissful CatholicTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Blissful CatholicTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		8B3C66B82FC23C850093FF64 /* Blissful CatholicUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Blissful CatholicUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		8B3301302FDDF92A00B5D8A3 /* Exceptions for "BlissfulWidgets" folder in "BlissfulWidgetsExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 8B3301172FDDF92A00B5D8A3 /* BlissfulWidgetsExtension */;
+		};
+		8B33013B2FDE672800B5D8A3 /* Exceptions for "Blissful Catholic" folder in "BlissfulWidgetsExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Services/Widgets/WidgetShared.swift,
+			);
+			target = 8B3301172FDDF92A00B5D8A3 /* BlissfulWidgetsExtension */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		8B33011E2FDDF92A00B5D8A3 /* BlissfulWidgets */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				8B3301302FDDF92A00B5D8A3 /* Exceptions for "BlissfulWidgets" folder in "BlissfulWidgetsExtension" target */,
+			);
+			path = BlissfulWidgets;
+			sourceTree = "<group>";
+		};
 		8B3C66A12FC23C840093FF64 /* Blissful Catholic */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				8B33013B2FDE672800B5D8A3 /* Exceptions for "Blissful Catholic" folder in "BlissfulWidgetsExtension" target */,
+			);
 			path = "Blissful Catholic";
 			sourceTree = "<group>";
 		};
@@ -53,6 +109,15 @@
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		8B3301152FDDF92A00B5D8A3 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				8B33011D2FDDF92A00B5D8A3 /* SwiftUI.framework in Frameworks */,
+				8B33011B2FDDF92A00B5D8A3 /* WidgetKit.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		8B3C669C2FC23C840093FF64 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -79,12 +144,24 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		8B3301192FDDF92A00B5D8A3 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				8B33011A2FDDF92A00B5D8A3 /* WidgetKit.framework */,
+				8B33011C2FDDF92A00B5D8A3 /* SwiftUI.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		8B3C66962FC23C840093FF64 = {
 			isa = PBXGroup;
 			children = (
+				8B3301322FDDFAC100B5D8A3 /* BlissfulWidgetsExtension.entitlements */,
 				8B3C66A12FC23C840093FF64 /* Blissful Catholic */,
 				8B3C66B12FC23C850093FF64 /* Blissful CatholicTests */,
 				8B3C66BB2FC23C850093FF64 /* Blissful CatholicUITests */,
+				8B33011E2FDDF92A00B5D8A3 /* BlissfulWidgets */,
+				8B3301192FDDF92A00B5D8A3 /* Frameworks */,
 				8B3C66A02FC23C840093FF64 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -95,6 +172,7 @@
 				8B3C669F2FC23C840093FF64 /* Blissful Catholic.app */,
 				8B3C66AE2FC23C850093FF64 /* Blissful CatholicTests.xctest */,
 				8B3C66B82FC23C850093FF64 /* Blissful CatholicUITests.xctest */,
+				8B3301182FDDF92A00B5D8A3 /* BlissfulWidgetsExtension.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -102,6 +180,28 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		8B3301172FDDF92A00B5D8A3 /* BlissfulWidgetsExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 8B3301312FDDF92A00B5D8A3 /* Build configuration list for PBXNativeTarget "BlissfulWidgetsExtension" */;
+			buildPhases = (
+				8B3301142FDDF92A00B5D8A3 /* Sources */,
+				8B3301152FDDF92A00B5D8A3 /* Frameworks */,
+				8B3301162FDDF92A00B5D8A3 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				8B33011E2FDDF92A00B5D8A3 /* BlissfulWidgets */,
+			);
+			name = BlissfulWidgetsExtension;
+			packageProductDependencies = (
+			);
+			productName = BlissfulWidgetsExtension;
+			productReference = 8B3301182FDDF92A00B5D8A3 /* BlissfulWidgetsExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 		8B3C669E2FC23C840093FF64 /* Blissful Catholic */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 8B3C66C22FC23C850093FF64 /* Build configuration list for PBXNativeTarget "Blissful Catholic" */;
@@ -109,10 +209,12 @@
 				8B3C669B2FC23C840093FF64 /* Sources */,
 				8B3C669C2FC23C840093FF64 /* Frameworks */,
 				8B3C669D2FC23C840093FF64 /* Resources */,
+				8B33012D2FDDF92A00B5D8A3 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				8B33012B2FDDF92A00B5D8A3 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				8B3C66A12FC23C840093FF64 /* Blissful Catholic */,
@@ -182,6 +284,9 @@
 				LastSwiftUpdateCheck = 2650;
 				LastUpgradeCheck = 2650;
 				TargetAttributes = {
+					8B3301172FDDF92A00B5D8A3 = {
+						CreatedOnToolsVersion = 26.5;
+					};
 					8B3C669E2FC23C840093FF64 = {
 						CreatedOnToolsVersion = 26.5;
 					};
@@ -216,11 +321,19 @@
 				8B3C669E2FC23C840093FF64 /* Blissful Catholic */,
 				8B3C66AD2FC23C850093FF64 /* Blissful CatholicTests */,
 				8B3C66B72FC23C850093FF64 /* Blissful CatholicUITests */,
+				8B3301172FDDF92A00B5D8A3 /* BlissfulWidgetsExtension */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		8B3301162FDDF92A00B5D8A3 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		8B3C669D2FC23C840093FF64 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -245,6 +358,13 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		8B3301142FDDF92A00B5D8A3 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		8B3C669B2FC23C840093FF64 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -269,6 +389,11 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		8B33012B2FDDF92A00B5D8A3 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 8B3301172FDDF92A00B5D8A3 /* BlissfulWidgetsExtension */;
+			targetProxy = 8B33012A2FDDF92A00B5D8A3 /* PBXContainerItemProxy */;
+		};
 		8B3C66B02FC23C850093FF64 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = 8B3C669E2FC23C840093FF64 /* Blissful Catholic */;
@@ -282,6 +407,68 @@
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
+		8B33012E2FDDF92A00B5D8A3 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_ENTITLEMENTS = BlissfulWidgetsExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 2;
+				DEVELOPMENT_TEAM = 767PMJ9W9G;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = BlissfulWidgets/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = BlissfulWidgets;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "co.jesusflores.Blissful-Catholic.BlissfulWidgets";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		8B33012F2FDDF92A00B5D8A3 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_ENTITLEMENTS = BlissfulWidgetsExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 2;
+				DEVELOPMENT_TEAM = 767PMJ9W9G;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = BlissfulWidgets/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = BlissfulWidgets;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "co.jesusflores.Blissful-Catholic.BlissfulWidgets";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 		8B3C66C02FC23C850093FF64 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -570,6 +757,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		8B3301312FDDF92A00B5D8A3 /* Build configuration list for PBXNativeTarget "BlissfulWidgetsExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				8B33012E2FDDF92A00B5D8A3 /* Debug */,
+				8B33012F2FDDF92A00B5D8A3 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		8B3C669A2FC23C840093FF64 /* Build configuration list for PBXProject "Blissful Catholic" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

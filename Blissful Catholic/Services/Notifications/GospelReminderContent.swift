@@ -35,7 +35,7 @@ struct GospelReminderContent {
         let reference = "\(bookName(fromCitation: gospel.citation)) \(first.chapter):\(first.verse)"
         return GospelReminderContent(
             title: day.celebration,
-            body: "\u{201C}\(trimmed(text))\u{201D} — \(reference)"
+            body: "\(trimmed(text).quotedForDisplay) — \(reference)"
         )
     }
 
