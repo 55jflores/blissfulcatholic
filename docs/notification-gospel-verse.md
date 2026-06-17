@@ -95,7 +95,7 @@ on the current date, so an active user never sees the fallback tier at all.
 |---|---|---|
 | `.task` on root view | every app launch | clear + rebuild window from today |
 | `scenePhase → .background` | user leaves the app | clear + rebuild (queue fresh on exit) |
-| Settings toggle / time change | user edits in Profile | rebuild immediately |
+| Settings toggle / lead-days change | user edits in Profile | rebuild immediately |
 | Permission granted | first opt-in | initial schedule |
 
 `refresh()` is **idempotent**: remove every pending `daily.gospel.*` request, then
@@ -165,9 +165,10 @@ empty (parser/WEBCE miss).
 3. `GospelReminderContent.make()` — pure content builder + 3-step degradation.
 4. `NotificationService` — permission, `refresh()`, delegate; `NotificationRouter`.
 5. Wire `Blissful_CatholicApp` (router + lifecycle) and `MainTabView` (deep-link).
-6. Profile **Reminders** section (toggle + time picker) — makes it testable on device.
-7. Verify on device by setting the reminder a minute ahead and backgrounding the app.
+6. Profile **Reminders** section (toggle) — Gospel fires at a fixed 8 AM.
+7. Verify on device by temporarily lowering the fixed Gospel hour (or the
+   discipline times) and backgrounding the app.
 
 > Honest caveat: notification scheduling is fiddly to verify — expect an
-> iterate-on-device loop (set a time a few minutes out, background the app),
+> iterate-on-device loop (temporarily lower a fire time, background the app),
 > not a single clean build.

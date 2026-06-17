@@ -124,24 +124,23 @@ struct ProfileView: View {
             Eyebrow(text: "Reminders", color: t.inkSoft).padding(.horizontal, 4)
             LumenCard(padding: 0) {
                 VStack(spacing: 0) {
-                    Toggle(isOn: gospelToggle) {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Morning Gospel").font(LumenType.display(16)).foregroundStyle(t.ink)
-                            Text("The day's Gospel verse, each morning")
-                                .font(LumenType.serif(12).italic()).foregroundStyle(t.inkMid)
-                        }
-                    }
-                    .tint(pal.accent)
-                    .padding(.horizontal, 18).padding(.vertical, 14)
+                    reminderToggle(title: "Morning Gospel",
+                                   subtitle: "The day's Gospel verse, each morning at 8 AM",
+                                   isOn: gospelToggle)
 
-                    if reminders.gospelEnabled {
-                        Rectangle().fill(t.ruleSoft).frame(height: 0.5).padding(.leading, 18)
-                        DatePicker(selection: gospelTime, displayedComponents: .hourAndMinute) {
-                            Text("Time").font(LumenType.serif(14)).foregroundStyle(t.ink)
-                        }
-                        .tint(pal.accent)
-                        .padding(.horizontal, 18).padding(.vertical, 8)
+                    reminderDivider
+                    reminderToggle(title: "Holy days of obligation",
+                                   subtitle: "When you're obliged to attend Mass",
+                                   isOn: holyDayToggle)
+                    if reminders.holyDayEnabled {
+                        reminderDivider
+                        leadDaysRow
                     }
+
+                    reminderDivider
+                    reminderToggle(title: "Fasting & abstinence",
+                                   subtitle: "Ash Wednesday, Fridays of Lent, Good Friday",
+                                   isOn: fastingToggle)
                 }
             }
             Text("Reminders are created on your device. Nothing is sent to a server.")
@@ -150,35 +149,72 @@ struct ProfileView: View {
         }
     }
 
+    private var reminderDivider: some View {
+        Rectangle().fill(t.ruleSoft).frame(height: 0.5).padding(.leading, 18)
+    }
+
+    private func reminderToggle(title: String, subtitle: String, isOn: Binding<Bool>) -> some View {
+        Toggle(isOn: isOn) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title).font(LumenType.display(16)).foregroundStyle(t.ink)
+                Text(subtitle).font(LumenType.serif(12).italic()).foregroundStyle(t.inkMid)
+            }
+        }
+        .tint(pal.accent)
+        .padding(.horizontal, 18).padding(.vertical, 14)
+    }
+
+    private var leadDaysRow: some View {
+        Menu {
+            ForEach([1, 3, 7], id: \.self) { d in
+                Button(leadDaysLabel(d)) { setLeadDays(d) }
+            }
+        } label: {
+            HStack {
+                Text("Notify me").font(LumenType.serif(14)).foregroundStyle(t.ink)
+                Spacer()
+                Text(leadDaysLabel(reminders.holyDayLeadDays))
+                    .font(LumenType.ui(12)).foregroundStyle(t.inkSoft)
+                Image(systemName: "chevron.up.chevron.down")
+                    .font(.system(size: 11)).foregroundStyle(t.inkSoft)
+            }
+            .padding(.horizontal, 18).padding(.vertical, 12).contentShape(.rect)
+        }
+        .menuStyle(.button).buttonStyle(.plain).tint(t.ink)
+    }
+
+    private func leadDaysLabel(_ d: Int) -> String { d == 1 ? "1 day before" : "\(d) days before" }
+
+    private func setLeadDays(_ d: Int) {
+        var updated = reminders
+        updated.holyDayLeadDays = d
+        reminders = updated
+        ReminderSettingsStore.save(reminders)
+        Task { await NotificationService.shared.refresh(settings: reminders) }
+    }
+
     private var gospelToggle: Binding<Bool> {
         Binding(get: { reminders.gospelEnabled },
-                set: { newValue in Task { await setGospelEnabled(newValue) } })
+                set: { v in Task { await applyToggle(v) { $0.gospelEnabled = v } } })
+    }
+    private var holyDayToggle: Binding<Bool> {
+        Binding(get: { reminders.holyDayEnabled },
+                set: { v in Task { await applyToggle(v) { $0.holyDayEnabled = v } } })
+    }
+    private var fastingToggle: Binding<Bool> {
+        Binding(get: { reminders.fastingEnabled },
+                set: { v in Task { await applyToggle(v) { $0.fastingEnabled = v } } })
     }
 
-    private var gospelTime: Binding<Date> {
-        Binding(
-            get: {
-                Calendar.current.date(bySettingHour: reminders.gospelHour,
-                                      minute: reminders.gospelMinute, second: 0, of: Date()) ?? Date()
-            },
-            set: { date in
-                let c = Calendar.current.dateComponents([.hour, .minute], from: date)
-                reminders.gospelHour = c.hour ?? 8
-                reminders.gospelMinute = c.minute ?? 0
-                ReminderSettingsStore.save(reminders)
-                Task { await NotificationService.shared.refresh(settings: reminders) }
-            })
-    }
-
-    /// Enabling requests permission first; a previously-denied user is routed to
-    /// Settings (we can't re-prompt) and the toggle stays off.
-    private func setGospelEnabled(_ on: Bool) async {
+    /// Turning a reminder ON requests permission first (routing to Settings if
+    /// previously denied, leaving the toggle off); OFF just saves. Always
+    /// re-schedules afterwards so the pending queue matches the settings.
+    private func applyToggle(_ on: Bool, _ assign: (inout ReminderSettings) -> Void) async {
         if on {
             await NotificationService.shared.refreshAuthorizationStatus()
             switch NotificationService.shared.authorizationStatus {
             case .notDetermined:
-                let granted = await NotificationService.shared.requestAuthorization()
-                guard granted else { return }
+                guard await NotificationService.shared.requestAuthorization() else { return }
             case .denied:
                 showSettingsAlert = true
                 return
@@ -186,7 +222,9 @@ struct ProfileView: View {
                 break
             }
         }
-        reminders.gospelEnabled = on
+        var updated = reminders
+        assign(&updated)
+        reminders = updated
         ReminderSettingsStore.save(reminders)
         await NotificationService.shared.refresh(settings: reminders)
     }

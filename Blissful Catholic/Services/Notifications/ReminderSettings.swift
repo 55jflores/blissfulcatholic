@@ -12,17 +12,24 @@
 import Foundation
 
 struct ReminderSettings: Equatable {
-    /// Morning Gospel verse-of-the-day reminder.
+    /// Morning Gospel verse-of-the-day reminder (fixed 8 AM — see NotificationService).
     var gospelEnabled: Bool = false
-    var gospelHour: Int = 8       // 0–23, device-local time
-    var gospelMinute: Int = 0     // 0–59
+
+    /// Holy day of obligation alerts (a planning notice + a vigil-aware one the
+    /// evening before). Informational + rare, so on by default.
+    var holyDayEnabled: Bool = true
+    var holyDayLeadDays: Int = 3  // 1 / 3 / 7: how many days before to send the advance planning notice
+
+    /// Fasting / abstinence alerts (Ash Wednesday, Fridays of Lent, Good Friday).
+    var fastingEnabled: Bool = true
 
     static let `default` = ReminderSettings()
 }
 
 extension ReminderSettings: Codable {
     private enum CodingKeys: String, CodingKey {
-        case gospelEnabled, gospelHour, gospelMinute
+        case gospelEnabled
+        case holyDayEnabled, holyDayLeadDays, fastingEnabled
     }
 
     /// Resilient decode: any missing key falls back to its property default, so
@@ -33,8 +40,9 @@ extension ReminderSettings: Codable {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         let d = ReminderSettings.default
         gospelEnabled = try c.decodeIfPresent(Bool.self, forKey: .gospelEnabled) ?? d.gospelEnabled
-        gospelHour = try c.decodeIfPresent(Int.self, forKey: .gospelHour) ?? d.gospelHour
-        gospelMinute = try c.decodeIfPresent(Int.self, forKey: .gospelMinute) ?? d.gospelMinute
+        holyDayEnabled = try c.decodeIfPresent(Bool.self, forKey: .holyDayEnabled) ?? d.holyDayEnabled
+        holyDayLeadDays = try c.decodeIfPresent(Int.self, forKey: .holyDayLeadDays) ?? d.holyDayLeadDays
+        fastingEnabled = try c.decodeIfPresent(Bool.self, forKey: .fastingEnabled) ?? d.fastingEnabled
     }
 }
 

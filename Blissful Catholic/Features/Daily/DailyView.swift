@@ -57,6 +57,7 @@ struct DailyView: View {
                         .padding(.bottom, 22)
 
                     VStack(spacing: 16) {
+                        disciplineCard
                         reflectWithAI
                         readingsCard
                         saintCard
@@ -107,6 +108,112 @@ struct DailyView: View {
                 feature: "daily",
                 prompt: companionPrompt
             )
+        }
+    }
+
+    // MARK: Liturgical discipline (holy days & fasting)
+
+    /// The single most-relevant discipline notice for the Daily card, if any.
+    /// Gated to the ~5 holy days a year (+ the day before) and penitential days,
+    /// so the card is hidden the rest of the year. Driven by the same
+    /// `LiturgicalDiscipline` rules as the notifications, so they can't disagree.
+    private enum DisciplineNotice {
+        case holyDay(HolyDay, daysUntil: Int, date: Date)   // 0 = today … up to 7 days out
+        case penitentialToday(Penitential)
+        case penitentialTomorrow(Penitential)               // Ash Wednesday / Good Friday only
+    }
+
+    private var disciplineNotice: DisciplineNotice? {
+        let cal = Calendar.current
+        // Today's discipline takes precedence (holy days and penitential days
+        // never co-occur, so order among them doesn't matter).
+        if let hd = LiturgicalDiscipline.holyDayOfObligation(on: now) {
+            return .holyDay(hd, daysUntil: 0, date: now)
+        }
+        if let pen = LiturgicalDiscipline.penitential(on: now) {
+            return .penitentialToday(pen)
+        }
+        // Holy days: a week-ahead countdown — weekday Mass needs planning.
+        for n in 1...7 {
+            if let date = cal.date(byAdding: .day, value: n, to: now),
+               let hd = LiturgicalDiscipline.holyDayOfObligation(on: date) {
+                return .holyDay(hd, daysUntil: n, date: date)
+            }
+        }
+        // Penitential: only a day-before heads-up, and only for the two fasting
+        // days people plan around (Ash Wednesday / Good Friday). A week-ahead
+        // countdown would carpet all of Lent — its Fridays are 7 days apart.
+        if let tomorrow = cal.date(byAdding: .day, value: 1, to: now),
+           let pen = LiturgicalDiscipline.penitential(on: tomorrow), pen.fasting {
+            return .penitentialTomorrow(pen)
+        }
+        return nil
+    }
+
+    @ViewBuilder
+    private var disciplineCard: some View {
+        if let notice = disciplineNotice {
+            LumenCard {
+                HStack(spacing: 14) {
+                    Image(systemName: disciplineIcon(notice))
+                        .font(.system(size: 17))
+                        .foregroundStyle(pal.accent)
+                        .frame(width: 40, height: 40)
+                        .background(t.surface3, in: .circle)
+                        .overlay(Circle().strokeBorder(t.rule, lineWidth: 0.5))
+                    VStack(alignment: .leading, spacing: 3) {
+                        Eyebrow(text: disciplineEyebrow(notice), color: pal.accent)
+                        Text(disciplineTitle(notice))
+                            .font(LumenType.display(18))
+                            .foregroundStyle(t.ink)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Text(disciplineBody(notice))
+                            .font(LumenType.serif(12).italic())
+                            .foregroundStyle(t.inkMid)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    Spacer(minLength: 0)
+                }
+            }
+        }
+    }
+
+    private func disciplineIcon(_ n: DisciplineNotice) -> String {
+        switch n {
+        case .holyDay: return "cross.fill"
+        case .penitentialToday, .penitentialTomorrow: return "fish"
+        }
+    }
+    private func disciplineEyebrow(_ n: DisciplineNotice) -> String {
+        switch n {
+        case .holyDay:
+            return "Holy Day of Obligation"
+        case .penitentialToday(let p):
+            return p.fasting ? "Fasting & Abstinence" : "Day of Abstinence"
+        case .penitentialTomorrow(let p):
+            return "Tomorrow · " + (p.fasting ? "Fasting & Abstinence" : "Day of Abstinence")
+        }
+    }
+    private func disciplineTitle(_ n: DisciplineNotice) -> String {
+        switch n {
+        case .holyDay(let hd, _, _): return hd.name
+        case .penitentialToday(let p), .penitentialTomorrow(let p): return p.name
+        }
+    }
+    private func disciplineBody(_ n: DisciplineNotice) -> String {
+        switch n {
+        case .holyDay(_, let days, let date):
+            switch days {
+            case 0:  return "Catholics are obliged to attend Mass today."
+            case 1:  return "Tomorrow — a vigil Mass this evening, or Mass tomorrow, fulfills it."
+            default:
+                let when = date.formatted(.dateTime.weekday(.wide).month(.abbreviated).day())
+                return "\(when) · in \(days) days. Plan to attend Mass."
+            }
+        case .penitentialToday(let p):
+            return p.summary
+        case .penitentialTomorrow(let p):
+            return "Tomorrow. \(p.summary)"
         }
     }
 
