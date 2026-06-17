@@ -57,6 +57,9 @@ struct LumenDeepHeader<Right: View>: View {
         .padding(.bottom, 12)
         .overlay(alignment: .bottom) { Rectangle().fill(t.ruleSoft).frame(height: 0.5) }
         .background(t.bg)
+        // Custom back button hides the system one, which disables the edge
+        // swipe-back; reinstate it so users can swipe or tap the arrow.
+        .enableSwipeBack()
     }
 }
 

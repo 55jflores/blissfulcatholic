@@ -133,8 +133,7 @@ struct ProfileView: View {
                                    subtitle: "When you're obliged to attend Mass",
                                    isOn: holyDayToggle)
                     if reminders.holyDayEnabled {
-                        reminderDivider
-                        leadDaysRow
+                        leadDaysRow   // nested under the toggle (no divider) — reads as one group
                     }
 
                     reminderDivider
@@ -171,14 +170,17 @@ struct ProfileView: View {
             }
         } label: {
             HStack {
-                Text("Notify me").font(LumenType.serif(14)).foregroundStyle(t.ink)
+                Text("Notify me").font(LumenType.serif(13)).foregroundStyle(t.inkMid)
                 Spacer()
                 Text(leadDaysLabel(reminders.holyDayLeadDays))
                     .font(LumenType.ui(12)).foregroundStyle(t.inkSoft)
                 Image(systemName: "chevron.up.chevron.down")
                     .font(.system(size: 11)).foregroundStyle(t.inkSoft)
             }
-            .padding(.horizontal, 18).padding(.vertical, 12).contentShape(.rect)
+            // Indented + no top divider so it nests under the Holy days toggle.
+            .padding(.leading, 36).padding(.trailing, 18)
+            .padding(.top, 2).padding(.bottom, 14)
+            .contentShape(.rect)
         }
         .menuStyle(.button).buttonStyle(.plain).tint(t.ink)
     }
