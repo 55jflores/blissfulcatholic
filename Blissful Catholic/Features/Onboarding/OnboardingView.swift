@@ -111,10 +111,22 @@ struct OnboardingView: View {
     }
 
     private func finish() {
-        profile.applyOnboarding(displayName: model.name.trimmingCharacters(in: .whitespaces),
-                                background: model.background,
-                                stateInLife: model.stateInLife,
-                                faithMaturity: model.faithMaturity)
+        Task {
+            // Final onboarding step: ask for notification permission with Apple's
+            // native dialog. On grant, enable the daily Gospel and schedule (holy
+            // day + fasting are already on by default).
+            let granted = await NotificationService.shared.requestAuthorization()
+            if granted {
+                var settings = ReminderSettingsStore.load()
+                settings.gospelEnabled = true
+                ReminderSettingsStore.save(settings)
+                await NotificationService.shared.refresh(settings: settings)
+            }
+            profile.applyOnboarding(displayName: model.name.trimmingCharacters(in: .whitespaces),
+                                    background: model.background,
+                                    stateInLife: model.stateInLife,
+                                    faithMaturity: model.faithMaturity)
+        }
     }
 }
 

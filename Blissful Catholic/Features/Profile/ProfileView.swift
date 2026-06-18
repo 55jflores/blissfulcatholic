@@ -35,9 +35,10 @@ struct ProfileView: View {
     @State private var isDeletingAccount = false
     @State private var deleteError: String?
 
-    // Reminders (daily Gospel verse — see docs/notification-gospel-verse.md).
+    // Reminders (see docs/notifications.md).
     @State private var reminders = ReminderSettingsStore.load()
     @State private var showSettingsAlert = false
+    @State private var notif = NotificationService.shared
 
     // Streak data, derived from real activity.
     private var activeDays: Set<Date> {
@@ -74,6 +75,14 @@ struct ProfileView: View {
             .padding(.bottom, 120)
         }
         .background(t.bg.ignoresSafeArea())
+        .onAppear {
+            Task { await notif.refreshAuthorizationStatus() }
+        }
+        .onChange(of: notificationsAuthorized) { _, authorized in
+            // Permission just flipped on — reload settings so the toggles reflect
+            // what the prompt/CTA enabled (e.g. the Gospel).
+            if authorized { reminders = ReminderSettingsStore.load() }
+        }
         .sheet(isPresented: $isEditing) { ProfileEditView() }
         .sheet(isPresented: $showSignIn) { SignInView() }
         .confirmationDialog("Delete your account?",
@@ -123,28 +132,84 @@ struct ProfileView: View {
         VStack(alignment: .leading, spacing: 10) {
             Eyebrow(text: "Reminders", color: t.inkSoft).padding(.horizontal, 4)
             LumenCard(padding: 0) {
-                VStack(spacing: 0) {
-                    reminderToggle(title: "Morning Gospel",
-                                   subtitle: "The day's Gospel verse, each morning at 8 AM",
-                                   isOn: gospelToggle)
-
-                    reminderDivider
-                    reminderToggle(title: "Holy days of obligation",
-                                   subtitle: "When you're obliged to attend Mass",
-                                   isOn: holyDayToggle)
-                    if reminders.holyDayEnabled {
-                        leadDaysRow   // nested under the toggle (no divider) — reads as one group
-                    }
-
-                    reminderDivider
-                    reminderToggle(title: "Fasting & abstinence",
-                                   subtitle: "Ash Wednesday, Fridays of Lent, Good Friday",
-                                   isOn: fastingToggle)
+                if notificationsAuthorized {
+                    remindersToggles
+                } else {
+                    remindersPermissionCTA
                 }
             }
             Text("Reminders are created on your device. Nothing is sent to a server.")
                 .font(LumenType.ui(11)).foregroundStyle(t.inkSoft)
                 .padding(.horizontal, 4)
+        }
+    }
+
+    private var notificationsAuthorized: Bool {
+        notif.authorizationStatus == .authorized || notif.authorizationStatus == .provisional
+    }
+
+    private var remindersToggles: some View {
+        VStack(spacing: 0) {
+            reminderToggle(title: "Morning Gospel",
+                           subtitle: "The day's Gospel verse, each morning at 8 AM",
+                           isOn: gospelToggle)
+
+            reminderDivider
+            reminderToggle(title: "Holy days of obligation",
+                           subtitle: "When you're obliged to attend Mass",
+                           isOn: holyDayToggle)
+            if reminders.holyDayEnabled {
+                leadDaysRow   // nested under the toggle (no divider) — reads as one group
+            }
+
+            reminderDivider
+            reminderToggle(title: "Fasting & abstinence",
+                           subtitle: "Ash Wednesday, Fridays of Lent, Good Friday",
+                           isOn: fastingToggle)
+        }
+    }
+
+    /// Shown when notifications aren't on yet — the "Not now" / denied state.
+    /// Tapping requests permission (or routes to Settings if denied); once on,
+    /// the section flips to the toggles above.
+    private var remindersPermissionCTA: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Turn on notifications to receive reminders for the day's Gospel, holy days of obligation, and days of fasting.")
+                .font(LumenType.serif(13.5))
+                .foregroundStyle(t.inkMid)
+                .lineSpacing(3)
+                .fixedSize(horizontal: false, vertical: true)
+            Button {
+                Task { await enableNotifications() }
+            } label: {
+                Text(notif.authorizationStatus == .denied ? "Open Settings" : "Turn on notifications")
+                    .font(LumenType.ui(13, weight: .medium))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 16).padding(.vertical, 10)
+                    .background(pal.accent, in: .capsule)
+            }
+            .buttonStyle(.plain)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(18)
+    }
+
+    private func enableNotifications() async {
+        await notif.refreshAuthorizationStatus()
+        switch notif.authorizationStatus {
+        case .notDetermined:
+            var settings = ReminderSettingsStore.load()
+            settings.gospelEnabled = true
+            ReminderSettingsStore.save(settings)
+            reminders = settings
+            _ = await notif.requestAuthorization()
+            await notif.refresh(settings: settings)
+        case .denied:
+            if let url = URL(string: UIApplication.openSettingsURLString) {
+                _ = await UIApplication.shared.open(url)
+            }
+        default:
+            break
         }
     }
 
