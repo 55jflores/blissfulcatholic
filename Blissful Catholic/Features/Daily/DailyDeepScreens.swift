@@ -559,8 +559,6 @@ struct ReflectionScreen: View {
             loadingState
         case .error(let msg):
             placeholder(msg)
-        case .signedOut:
-            placeholder("Sign in to see your reflection for today.")
         case .idle:
             placeholder("Today's reflection isn't available yet.")
         }

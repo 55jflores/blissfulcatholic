@@ -94,7 +94,6 @@ struct DailyView: View {
             .task(id: liturgy.today?.date) { await loadFirstVerses() }
             .task(id: liturgy.today?.celebration) { await loadSaint() }
             .task(id: liturgy.today?.date) { await loadDailyReflection() }
-            .task(id: auth.isSignedIn) { await loadDailyReflection() }
             .onChange(of: scenePhase) { _, newPhase in
                 // Re-check the day on foreground so a session that crossed
                 // midnight refreshes the saint, readings, and reflection.
@@ -594,8 +593,7 @@ struct DailyView: View {
     ///   - ready: tappable preview → ReflectionScreen
     ///   - loading: a small skeleton while the AI call is in flight
     ///   - error: a quiet error pill
-    ///   - signedOut / idle: hidden (the "Reflect with your companion" CTA at
-    ///     the top already handles signed-out users who want AI)
+    ///   - idle: hidden (nothing to show yet)
     @ViewBuilder
     private var reflectionCard: some View {
         if let r = todaysReflection {
@@ -639,8 +637,7 @@ struct DailyView: View {
                 }
             }
         }
-        // .idle and .signedOut → hidden; the top "Reflect with your companion"
-        // button is the sign-in / AI entry point in those states.
+        // .idle → hidden (nothing to show yet).
     }
 
     /// First two sentences (or first ~180 chars) of the body, for the card preview.
@@ -657,28 +654,20 @@ struct DailyView: View {
         return body.count > 180 ? String(body.prefix(180)) + "…" : body
     }
 
-    /// Fetch today's Gospel text from BibleService and hand it to the
-    /// DailyReflectionStore (which handles caching + the AI call). Idempotent —
-    /// fires on liturgy-loaded and on sign-in transitions. Also caches the
-    /// Gospel text + citation into `@State` so the companion sheet's prompt can
-    /// reuse them without a second BibleService lookup.
+    /// Fetch the pre-generated reflection for today (keyed only by date — the card
+    /// no longer streams the AI). Also resolves today's Gospel text + citation into
+    /// `@State`, best-effort, so the companion sheet's prompt can reuse them without
+    /// a second BibleService lookup. The card fetch does NOT depend on that
+    /// resolution. Idempotent; fires when the liturgical day loads.
     private func loadDailyReflection() async {
-        guard let day = liturgy.today,
-              let gospel = day.readings?.first(where: { $0.label == "Gospel" })
-        else { return }
-        let token = await auth.accessToken()
-        let verses = await BibleService.shared.verses(forCitation: gospel.citation)
-        let gospelText = verses.map(\.text).joined(separator: " ")
-        todayGospelText = gospelText
-        todayGospelCitation = gospel.citation
-        let personalization = AppContext.current(profile: profile).systemPromptFragment
-        await reflectionStore.loadIfNeeded(
-            date: day.date,
-            gospelCitation: gospel.citation,
-            gospelText: gospelText,
-            token: token,
-            personalization: personalization
-        )
+        guard let day = liturgy.today else { return }
+        await reflectionStore.loadIfNeeded(date: day.date)
+
+        if let gospel = day.readings?.first(where: { $0.label == "Gospel" }) {
+            let verses = await BibleService.shared.verses(forCitation: gospel.citation)
+            todayGospelText = verses.map(\.text).joined(separator: " ")
+            todayGospelCitation = gospel.citation
+        }
     }
 
     /// Prompt for the "Reflect with your companion" sheet. Grounds the AI in

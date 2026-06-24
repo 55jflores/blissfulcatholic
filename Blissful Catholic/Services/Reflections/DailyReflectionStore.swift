@@ -2,13 +2,14 @@
 //  DailyReflectionStore.swift
 //  Blissful Catholic
 //
-//  Fetches and caches today's AI-generated devotional reflection on the day's
-//  Gospel. Cache lives in UserDefaults — small, simple, no schema; regenerates
-//  when the date changes.
+//  Fetches and caches the day's shared reflection on the Gospel. The reflection
+//  is pre-generated server-side (a daily cron) and served from
+//  /api/daily-reflection — so the card loads instantly, with no per-open AI call
+//  and no cold-start timeout. Personalization lives in the separate "Reflect with
+//  your companion" sheet, not here.
 //
-//  Calls the `daily` feature on /api/ai (FREE tier per backend FEATURE_PROMPTS).
-//  When Phase 5 lands, we'd promote this to a Plus-gated feature key — but the
-//  call signature here doesn't change, only the backend gating.
+//  Cache lives in UserDefaults — small, simple, no schema; regenerates when the
+//  date changes.
 //
 
 import Foundation
@@ -20,10 +21,9 @@ final class DailyReflectionStore {
 
     enum Phase: Equatable {
         case idle           // not yet attempted (e.g. liturgy not loaded yet)
-        case loading        // call in flight
+        case loading        // fetch in flight
         case ready          // `reflection` is populated and current
-        case error(String)  // call failed; reflection may still hold yesterday's
-        case signedOut      // can't call /api/ai without an access token
+        case error(String)  // fetch failed; reflection may still hold yesterday's
     }
 
     private(set) var reflection: DailyReflection?
@@ -31,6 +31,9 @@ final class DailyReflectionStore {
 
     private let userDefaultsKey = "dailyReflection.v1"
     private var loadTask: Task<Void, Never>?
+
+    /// The public endpoint serving the pre-generated reflection.
+    private let endpoint = SupabaseConfig.apiBaseURL.appending(path: "api/daily-reflection")
 
     private init() {
         // Pre-populate from disk so the card can render immediately on launch
@@ -43,16 +46,10 @@ final class DailyReflectionStore {
 
     // MARK: - Public API
 
-    /// Loads today's reflection if not already present. Idempotent on the same
-    /// date — safe to call repeatedly from `.task` modifiers. Cancels any
-    /// in-flight task for a stale date.
-    func loadIfNeeded(
-        date: String,
-        gospelCitation: String,
-        gospelText: String,
-        token: String?,
-        personalization: String?
-    ) async {
+    /// Loads the reflection for `date` if not already present. Idempotent on the
+    /// same date — safe to call repeatedly from `.task` modifiers. Cancels any
+    /// in-flight fetch for a stale date.
+    func loadIfNeeded(date: String) async {
         // Already have today's reflection in memory — no work.
         if let r = reflection, r.date == date, phase == .ready { return }
 
@@ -63,40 +60,13 @@ final class DailyReflectionStore {
             return
         }
 
-        // From here we need to call the AI.
-        guard let token else {
-            phase = .signedOut
-            return
-        }
-        guard !gospelText.isEmpty else {
-            // Gospel hasn't resolved yet (BibleService still loading webce.json).
-            // Bail; the caller will re-invoke once verses arrive.
-            return
-        }
-
         loadTask?.cancel()
         phase = .loading
-        let prompt = Self.buildPrompt(citation: gospelCitation, gospelText: gospelText)
 
         loadTask = Task {
             do {
-                var accumulated = ""
-                let stream = AIService.shared.stream(
-                    feature: "daily",
-                    messages: [["role": "user", "content": prompt]],
-                    personalization: personalization,
-                    token: token
-                )
-                for try await chunk in stream {
-                    accumulated += chunk
-                }
+                let new = try await fetch(date: date)
                 guard !Task.isCancelled else { return }
-                let new = DailyReflection(
-                    date: date,
-                    gospelCitation: gospelCitation,
-                    body: accumulated.trimmingCharacters(in: .whitespacesAndNewlines),
-                    generatedAt: Date()
-                )
                 self.reflection = new
                 self.phase = .ready
                 self.saveToDisk(new)
@@ -110,9 +80,7 @@ final class DailyReflectionStore {
         await loadTask?.value
     }
 
-    /// Forget the cached reflection. Useful when the user signs out (so the
-    /// next signed-in user doesn't see someone else's reflection) and for any
-    /// future pull-to-refresh.
+    /// Forget the cached reflection. Useful for a future pull-to-refresh.
     func reset() {
         loadTask?.cancel()
         loadTask = nil
@@ -121,19 +89,54 @@ final class DailyReflectionStore {
         UserDefaults.standard.removeObject(forKey: userDefaultsKey)
     }
 
-    // MARK: - Prompt
+    // MARK: - Network
 
-    private static func buildPrompt(citation: String, gospelText: String) -> String {
-        """
-        Write a short Catholic devotional reflection — about 150 to 180 words, in two short paragraphs — on today's Gospel:
+    private enum FetchError: LocalizedError {
+        case notReady
+        case server(Int)
 
-        \(citation)
-
-        "\(gospelText)"
-
-        Tone: warm, prayerful, lectionary-grounded. Address the reader directly ("you"). Surface one specific insight from the passage, then offer a brief invitation to prayer or to a small, concrete spiritual step. Avoid clichés and hedging. Do not begin with a title.
-        """
+        var errorDescription: String? {
+            switch self {
+            case .notReady:         return "Today's reflection is on its way."
+            case .server(let code): return "Couldn't reach the server (\(code))."
+            }
+        }
     }
+
+    private func fetch(date: String) async throws -> DailyReflection {
+        var comps = URLComponents(url: endpoint, resolvingAgainstBaseURL: false)!
+        comps.queryItems = [URLQueryItem(name: "date", value: date)]
+        var request = URLRequest(url: comps.url!)
+        // The CDN caches at the edge; skip the device cache so a same-day refresh
+        // (e.g. after the cron backfills) isn't masked by a stale local copy.
+        request.cachePolicy = .reloadIgnoringLocalCacheData
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+        let status = (response as? HTTPURLResponse)?.statusCode ?? 0
+        switch status {
+        case 200:  return try Self.networkDecoder.decode(DailyReflection.self, from: data)
+        case 404:  throw FetchError.notReady
+        default:   throw FetchError.server(status)
+        }
+    }
+
+    /// Server sends `generatedAt` as ISO-8601 (with fractional seconds); the disk
+    /// cache uses the default numeric Date encoding, so they need separate coders.
+    private static let networkDecoder: JSONDecoder = {
+        let withFractional = ISO8601DateFormatter()
+        withFractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        let plain = ISO8601DateFormatter()
+        plain.formatOptions = [.withInternetDateTime]
+
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .custom { d in
+            let s = try d.singleValueContainer().decode(String.self)
+            if let date = withFractional.date(from: s) ?? plain.date(from: s) { return date }
+            throw DecodingError.dataCorrupted(.init(
+                codingPath: d.codingPath, debugDescription: "Unparseable date: \(s)"))
+        }
+        return decoder
+    }()
 
     // MARK: - Disk cache
 
