@@ -123,15 +123,16 @@ final class DailyReflectionStore {
     /// Server sends `generatedAt` as ISO-8601 (with fractional seconds); the disk
     /// cache uses the default numeric Date encoding, so they need separate coders.
     private static let networkDecoder: JSONDecoder = {
-        let withFractional = ISO8601DateFormatter()
-        withFractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        let plain = ISO8601DateFormatter()
-        plain.formatOptions = [.withInternetDateTime]
+        // `Date.ISO8601FormatStyle` is a Sendable value type, so it can be safely
+        // captured by the `@Sendable` decoding closure (unlike ISO8601DateFormatter).
+        let withFractional = Date.ISO8601FormatStyle(includingFractionalSeconds: true)
+        let plain = Date.ISO8601FormatStyle(includingFractionalSeconds: false)
 
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .custom { d in
             let s = try d.singleValueContainer().decode(String.self)
-            if let date = withFractional.date(from: s) ?? plain.date(from: s) { return date }
+            if let date = try? withFractional.parse(s) { return date }
+            if let date = try? plain.parse(s) { return date }
             throw DecodingError.dataCorrupted(.init(
                 codingPath: d.codingPath, debugDescription: "Unparseable date: \(s)"))
         }
